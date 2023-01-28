@@ -18,6 +18,7 @@ import schedule
 from threading import Thread
 from fastapi_utils.tasks import repeat_every
 import time
+import math
 
 app = FastAPI()
 app.add_middleware(
@@ -49,6 +50,16 @@ def tdtoko(ti: td):
         return f"{int(ms / 1000)}ms"
     return f"{ms}us"
 
+size_name = ("B", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB")
+def convert_size(size_bytes):
+    if size_bytes == 0:
+        return "0B"
+
+    i = int(math.floor(math.log(size_bytes, 1024)))
+    p = math.pow(1024, i)
+    s = round(size_bytes / p, 2)
+    return f"{s} {size_name[i]}"
+
 
 def download(record_time=15, channel_code=24):
     url = f'http://onair.kbs.co.kr/index.html?sname=onair&stype=live&ch_code={channel_code}'
@@ -74,8 +85,10 @@ def actual_download(command, filename):
 
 
 schedule.every().day.at("18:00").do(download, 7200)
+schedule.every().day.at("01:00").do(download, 7200)
 
 
+os.path.getsize
 @app.get("/", response_class=HTMLResponse)
 def index():
     files = os.listdir('/web/music')
@@ -84,7 +97,7 @@ def index():
                          f"<p>{k} : {tdtoko(dt.now() - v[0])}전부터 다운로드 시작, {f'{tdtoko(dt.now() - v[1])}전에 다운로드 완료' if v[1] else '아직 다운로드 중'}</p>"
                          for k, v in now_downloading.items()])
     for file in files:
-        result += f"<a href='/music/{file}' download='{file}'>{file}</a><br><audio controls><source src='/music/{file}' type='audio/mp3'></audio><br>"
+        result += f"<a href='/music/{file}' download='{file}'>{file} {convert_size(os.path.getsize(f'/music/{file}'))}</a><br><audio controls><source src='/music/{file}' type='audio/mp3'></audio><br>"
     if result:
         return result
     else:
