@@ -22,7 +22,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-app = FastAPI()
+
 
 
 def download(record_time=15, channel_code=24):
