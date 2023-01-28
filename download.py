@@ -46,7 +46,7 @@ def index():
     files = os.listdir('/web/music')
     result = ""
     for file in files:
-        result += f"<a href='/music/{file}' download='{file}'>{file}</a><br>"
+        result += f"<a href='/music/{file}' download='{file}'>{file}</a><audio controls><source src='/music/{file}' type='audio/mp3'></audio><br>"
     if result:
         return result
     else:
