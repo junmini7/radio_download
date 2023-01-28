@@ -31,9 +31,20 @@ app.add_middleware(
 now_downloading = {}
 
 
-def tdtoko(ti: td):
-    ms, s, d = ti.microseconds, ti.seconds, ti.days
+def tdtoen(s):
+    hours, remainder = divmod(s, 3600)
+    minutes, seconds = divmod(remainder, 60)
+    return f"{hours:02}H{minutes:02}M{seconds:02}S"
 
+
+def tdtoko(s):
+    hours, remainder = divmod(s, 3600)
+    minutes, seconds = divmod(remainder, 60)
+    return f"{hours}시간{minutes}분{seconds}초"
+
+
+def tdtoko_before(ti: td):
+    ms, s, d = ti.microseconds, ti.seconds, ti.days
     if d > 365.25:
         return f"{int(d / 365.25)}년"
     if d > 365 / 12:
@@ -50,8 +61,11 @@ def tdtoko(ti: td):
         return f"{int(ms / 1000)}ms"
     return f"{ms}us"
 
+
 size_name = ("B", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB")
-music_directory="/web/music/"
+music_directory = "/web/music/"
+
+
 def convert_size(size_bytes):
     if size_bytes == 0:
         return "0B"
@@ -72,41 +86,50 @@ def download(record_time=15, channel_code=24):
     today_date = dt.now().strftime('%Y%m%d')
     now = dt.now().strftime("%Y%m%d%H%M%S")
     print(real_url)
-    filename = f"everymusic_{now}_{record_time}s.mp3"
+    filename = f"everymusic_{now}_{tdtoen(record_time)}s.mp3"
     now_downloading[filename] = [dt.now(), False]
     Thread(target=actual_download, args=(
-    f'ffmpeg -i "{real_url}" -vn -acodec libmp3lame -t {record_time} -metadata title="Every_music_{today_date}" -metadata date="{today_date}" -metadata album="KBS" -metadata track="{today_date}" {music_directory}{filename}',
-    filename)).start()
+        f'ffmpeg -i "{real_url}" -vn -acodec libmp3lame -t {record_time} -metadata title="Every_music_{today_date}" -metadata date="{today_date}" -metadata album="KBS" -metadata track="{today_date}" {music_directory}{filename}',
+        filename)).start()
     return filename
 
 
 def actual_download(command, filename):
-    subprocess.run(command,  shell=True)
+    subprocess.run(command, shell=True)
     now_downloading[filename][1] = dt.now()
 
-download_events=[["18:00",7200],["01:00",7200]]
+
+download_events = [["18:00", 7200], ["01:00", 7200]]
 for download_event in download_events:
     schedule.every().day.at(download_event[0]).do(download, download_event[1])
+
 
 @app.get("/", response_class=HTMLResponse)
 def index():
     files = os.listdir(music_directory)
     files.sort(reverse=True)
     result = "".join([
-                         f"<p>{k} : {tdtoko(dt.now() - v[0])}전부터 다운로드 시작, {f'{tdtoko(dt.now() - v[1])}전에 다운로드 완료' if v[1] else '아직 다운로드 중'}</p>"
-                         for k, v in now_downloading.items()])
+        f"<p>{k} : {tdtoko_before(dt.now() - v[0])}전부터 다운로드 중</p>"
+        for k, v in now_downloading.items() if not v[1]])
+    if result:
+        result += "<br>"
     for file in files:
         result += f"""<a href='/music/{file}' download='{file}'>{file} {convert_size(os.path.getsize(f'{music_directory}{file}'))}</a>&emsp;<a onclick='delete_file("{file}")'>삭제</a><br><audio controls><source src='/music/{file}' type='audio/mp3'></audio><br><br>"""
-    result+=f"""<br>예정된 다운로드 이벤트 : {', '.join([f'{i[0]}에 {i[1]}초 동안' for i in download_events])} 다운로드가 예정되어 있습니다."""
+    if not files:
+        result += "아직 다운로드된 파일이 하나도 없습니다."
+    result += f"""<br>예정된 다운로드 이벤트 : {', '.join([f'{i[0]}에 {tdtoko(i[1])}초 동안' for i in download_events])} 다운로드가 예정되어 있습니다."""
     return result
 
-@app.get("/delete",response_class=JSONResponse)
-def delete(name:str):
+
+@app.get("/delete", response_class=JSONResponse)
+def delete(name: str):
     try:
         os.remove(f'{music_directory}{name}')
-        return {'content':f"{name} 삭제 성공!"}
+        return {'content': f"{name} 삭제 성공!"}
     except:
-        return {'content':f"{name} 삭제 실패..."}
+        return {'content': f"{name} 삭제 실패..."}
+
+
 @app.get("/record", response_class=JSONResponse)
 def record(time: int = 15):
     return {"content": download(time)}
