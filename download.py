@@ -70,6 +70,7 @@ def download(record_time=15, channel_code=24):
 
 def actual_download(command, filename):
     subprocess.run(command,  shell=True)
+
     now_downloading[filename][1] = dt.now()
 
 
@@ -83,6 +84,7 @@ def index():
     result = "".join([
                          f"<p>{k} : {tdtoko(dt.now() - v[0])}전부터 다운로드 시작, {f'{tdtoko(dt.now() - v[1])}전에 다운로드 완료' if v[1] else '아직 다운로드 중'}</p>"
                          for k, v in now_downloading.items()])
+    result+=str(now_downloading)
     for file in files:
         result += f"<a href='/music/{file}' download='{file}'>{file}</a><audio controls><source src='/music/{file}' type='audio/mp3'></audio><br>"
     if result:
