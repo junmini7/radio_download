@@ -24,7 +24,6 @@ app.add_middleware(
 )
 
 
-
 def download(record_time=15, channel_code=24):
     url = f'http://onair.kbs.co.kr/index.html?sname=onair&stype=live&ch_code={channel_code}'
     url2 = f"http://onair.kbs.co.kr/index.html?sname=onair&stype=live&ch_code={channel_code}&ch_type=radioList"
@@ -33,11 +32,13 @@ def download(record_time=15, channel_code=24):
     temp = data[data.find('channel_item') + 35:]
     real_url = temp[:temp.index('"') - 1]
     today_date = dt.now().strftime('%Y%m%d')
-    now=dt.now().strftime("%Y%m%d%H%M%S")
+    now = dt.now().strftime("%Y%m%d%H%M%S")
     print(real_url)
+    filename = f"/web/music/everymusic_{now}_{record_time}s.mp3"
     subprocess.Popen(
-        f'ffmpeg -i "{real_url}" -vn -acodec libmp3lame -t {record_time} -metadata title="Every_music_{today_date}" -metadata date="{today_date}" -metadata album="KBS" -metadata track="{today_date}" /web/music/everymusic_{now}.mp3',
+        f'ffmpeg -i "{real_url}" -vn -acodec libmp3lame -t {record_time} -metadata title="Every_music_{today_date}" -metadata date="{today_date}" -metadata album="KBS" -metadata track="{today_date}" {filename}',
         shell=True)
+    return filename
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -51,6 +52,7 @@ def index():
     else:
         return "nothing"
 
-@app.get("/record",response_class=RedirectResponse)
-def record(time:int=15):
-    download(time)
+
+@app.get("/record", response_class=JSONResponse)
+def record(time: int = 15):
+    return {"content": download(time)}
