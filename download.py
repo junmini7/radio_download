@@ -29,7 +29,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 now_downloading = {}
+size_name = ("B", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB")
+music_directory = "/web/music/"
 
+download_events = [["17:58", 7200], ["00:58", 7200]]
 
 def tdtoen(s):
     hours, remainder = divmod(s, 3600)
@@ -62,8 +65,6 @@ def tdtoko_large(ti: td):
     return f"{ms}us"
 
 
-size_name = ("B", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB")
-music_directory = "/web/music/"
 
 
 def convert_size(size_bytes):
@@ -99,7 +100,6 @@ def actual_download(command, filename):
     now_downloading[filename][1] = dt.now()
 
 
-download_events = [["18:00", 7200], ["01:00", 7200]]
 for download_event in download_events:
     schedule.every().day.at(download_event[0]).do(download, download_event[1])
 
@@ -114,7 +114,7 @@ def index():
             if not now_downloading[file][1]:
                 introduce=f"{tdtoko_large(dt.now() - now_downloading[file][0])} 전부터 다운로드 중, {tdtoko_large(now_downloading[file][2] - (dt.now() - now_downloading[file][0]))} 후 완료 예정"
             else:
-                introduce = f"{tdtoko_large(dt.now() - now_downloading[file][0])}전 {tdtoko_large(now_downloading[file][1] - now_downloading[file][0])} 동안 다운로드 완료"
+                introduce = f"{tdtoko_large(dt.now() - now_downloading[file][0])} 전, {tdtoko_large(now_downloading[file][1] - now_downloading[file][0])} 동안 다운로드 완료"
         else:
             introduce=""
         result += f"""{file} {convert_size(os.path.getsize(f'{music_directory}{file}'))}&emsp;{introduce}
