@@ -97,13 +97,19 @@ def index():
                          f"<p>{k} : {tdtoko(dt.now() - v[0])}전부터 다운로드 시작, {f'{tdtoko(dt.now() - v[1])}전에 다운로드 완료' if v[1] else '아직 다운로드 중'}</p>"
                          for k, v in now_downloading.items()])
     for file in files:
-        result += f"<a href='/music/{file}' download='{file}'>{file} {convert_size(os.path.getsize(f'/web/music/{file}'))}</a><br><audio controls><source src='/music/{file}' type='audio/mp3'></audio><br><br>"
+        result += f"<a href='/music/{file}' download='{file}'>{file} {convert_size(os.path.getsize(f'/web/music/{file}'))}</a><a onclick='delete_file({file})'>삭제</a><br><audio controls><source src='/music/{file}' type='audio/mp3'></audio><br><br>"
     if result:
         return result
     else:
         return "nothing"
 
-
+@app.get("/delete",response_class=JSONResponse)
+def delete(name:str):
+    try:
+        os.remove(f'/web/music/{name}')
+        return {'content':f"{name} 삭제 성공!"}
+    except:
+        return {'content':f"{name} 삭제 실패..."}
 @app.get("/record", response_class=JSONResponse)
 def record(time: int = 15):
     return {"content": download(time)}
