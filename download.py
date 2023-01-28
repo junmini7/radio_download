@@ -69,9 +69,7 @@ def download(record_time=15, channel_code=24):
 
 
 def actual_download(command, filename):
-    print(command)
     subprocess.run(command,  shell=True)
-    print('success')
     now_downloading[filename][1] = dt.now()
 
 
