@@ -33,9 +33,10 @@ def download(record_time=15, channel_code=24):
     temp = data[data.find('channel_item') + 35:]
     real_url = temp[:temp.index('"') - 1]
     today_date = dt.now().strftime('%Y%m%d')
+    now=dt.now().strftime("%Y%m%d%H%M%S")
     print(real_url)
     subprocess.Popen(
-        f'ffmpeg -i "{real_url}" -vn -acodec libmp3lame -t {record_time} -metadata title="Every_music_{today_date}" -metadata date="{today_date}" -metadata album="KBS" -metadata track="{today_date}" /web/music/everymusic_{today_date}.mp3',
+        f'ffmpeg -i "{real_url}" -vn -acodec libmp3lame -t {record_time} -metadata title="Every_music_{today_date}" -metadata date="{today_date}" -metadata album="KBS" -metadata track="{today_date}" /web/music/everymusic_{now}.mp3',
         shell=True)
 
 
@@ -45,4 +46,11 @@ def index():
     result = ""
     for file in files:
         result += f"<a href='/music/{file}' download='{file}'>{file}</a><br>"
-    return result
+    if result:
+        return result
+    else:
+        return "nothing"
+
+@app.get("/record",response_class=RedirectResponse)
+def record(time:int=15):
+    download(time)
