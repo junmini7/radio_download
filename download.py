@@ -43,7 +43,7 @@ def tdtoko(s):
     return f"{hours}시간{minutes}분{seconds}초"
 
 
-def tdtoko_before(ti: td):
+def tdtoko_large(ti: td):
     ms, s, d = ti.microseconds, ti.seconds, ti.days
     if d > 365.25:
         return f"{int(d / 365.25)}년"
@@ -84,9 +84,9 @@ def download(record_time=15, channel_code=24):
     temp = data[data.find('channel_item') + 35:]
     real_url = temp[:temp.index('"') - 1]
     today_date = dt.now().strftime('%Y%m%d')
-    now = dt.now().strftime("%Y%m%d%H%M%S")
+    now = dt.now().strftime("%Y년%m월%d일%H시%M분%S초")
     print(real_url)
-    filename = f"everymusic_{now}_{tdtoen(record_time)}s.mp3"
+    filename = f"KBS_{now}_{tdtoko(record_time)}s.mp3"
     now_downloading[filename] = [dt.now(), False, td(seconds=record_time)]
     Thread(target=actual_download, args=(
         f'ffmpeg -i "{real_url}" -vn -acodec libmp3lame -t {record_time} -metadata title="Every_music_{today_date}" -metadata date="{today_date}" -metadata album="KBS" -metadata track="{today_date}" {music_directory}{filename}',
@@ -108,13 +108,17 @@ for download_event in download_events:
 def index():
     files = os.listdir(music_directory)
     files.sort(reverse=True)
-    result = "".join([
-        f"<p>{k} : {tdtoko_before(dt.now() - v[0])}전부터 다운로드 중, {tdtoko_before(v[2]-(dt.now() - v[0]))}후 완료 예정</p>"
-        for k, v in now_downloading.items() if not v[1]])
-    if result:
-        result += "<br>"
+    result = ""
     for file in files:
-        result += f"""<a href='/music/{file}' download='{file}'>{file} {convert_size(os.path.getsize(f'{music_directory}{file}'))}</a>&emsp;<a onclick='delete_file("{file}")'>삭제</a><br><audio controls><source src='/music/{file}' type='audio/mp3'></audio><br><br>"""
+        if file in now_downloading:
+            if not now_downloading[file][1]:
+                introduce=f"{tdtoko_large(dt.now() - now_downloading[file][0])}전부터 다운로드 중, {tdtoko_large(now_downloading[file][2] - (dt.now() - now_downloading[file][0]))}후 완료 예정"
+            else:
+                introduce = f"{tdtoko_large(dt.now() - now_downloading[file][0])}전 {tdtoko_large(now_downloading[file][1] - now_downloading[file][0])} 동안 다운로드 완료"
+        else:
+            introduce=""
+        result += f"""{file} {convert_size(os.path.getsize(f'{music_directory}{file}'))}&emsp;{introduce}
+        <br><a href='/music/{file}' download='{file}'>다운로드</a>&emsp;<a onclick='delete_file("{file}")'>삭제</a><br><audio controls><source src='/music/{file}' type='audio/mp3'></audio><br><br>"""
     if not files:
         result += "아직 다운로드된 파일이 하나도 없습니다."
     result += f"""<br>예정된 다운로드 이벤트 : {', '.join([f'{i[0]}에 {tdtoko(i[1])} 동안' for i in download_events])} 다운로드가 예정되어 있습니다."""
@@ -131,8 +135,8 @@ def delete(name: str):
 
 
 @app.get("/record", response_class=JSONResponse)
-def record(time: int = 15):
-    return {"content": download(time)}
+def record(time: int = 1):
+    return {"content": download(time*60)}
 
 
 @app.on_event("startup")
