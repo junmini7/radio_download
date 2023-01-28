@@ -87,7 +87,7 @@ def download(record_time=15, channel_code=24):
     now = dt.now().strftime("%Y%m%d%H%M%S")
     print(real_url)
     filename = f"everymusic_{now}_{tdtoen(record_time)}s.mp3"
-    now_downloading[filename] = [dt.now(), False]
+    now_downloading[filename] = [dt.now(), False, td(seconds=record_time)]
     Thread(target=actual_download, args=(
         f'ffmpeg -i "{real_url}" -vn -acodec libmp3lame -t {record_time} -metadata title="Every_music_{today_date}" -metadata date="{today_date}" -metadata album="KBS" -metadata track="{today_date}" {music_directory}{filename}',
         filename)).start()
@@ -109,7 +109,7 @@ def index():
     files = os.listdir(music_directory)
     files.sort(reverse=True)
     result = "".join([
-        f"<p>{k} : {tdtoko_before(dt.now() - v[0])}전부터 다운로드 중</p>"
+        f"<p>{k} : {tdtoko_before(dt.now() - v[0])}전부터 다운로드 중, {tdtoko_before(v[2]-(dt.now() - v[0]))}후 완료 예정</p>"
         for k, v in now_downloading.items() if not v[1]])
     if result:
         result += "<br>"
@@ -117,7 +117,7 @@ def index():
         result += f"""<a href='/music/{file}' download='{file}'>{file} {convert_size(os.path.getsize(f'{music_directory}{file}'))}</a>&emsp;<a onclick='delete_file("{file}")'>삭제</a><br><audio controls><source src='/music/{file}' type='audio/mp3'></audio><br><br>"""
     if not files:
         result += "아직 다운로드된 파일이 하나도 없습니다."
-    result += f"""<br>예정된 다운로드 이벤트 : {', '.join([f'{i[0]}에 {tdtoko(i[1])}초 동안' for i in download_events])} 다운로드가 예정되어 있습니다."""
+    result += f"""<br>예정된 다운로드 이벤트 : {', '.join([f'{i[0]}에 {tdtoko(i[1])} 동안' for i in download_events])} 다운로드가 예정되어 있습니다."""
     return result
 
 
