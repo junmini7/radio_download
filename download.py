@@ -17,7 +17,7 @@ data = bs(requests.get(url).text, 'html.parser').findAll('script')[18].text
 temp = data[data.find('channel_item') + 35:]
 real_url = temp[:temp.index('"') - 1]
 print(real_url)
-process = subprocess.Popen(f'mplayer "{real_url}" -ao pcm:file=test.flv -vc dummy -vo null', shell=True, preexec_fn=os.setsid)
+process = subprocess.Popen(f'mplayer "{real_url}" -ao pcm:file=~/test.flv -vc dummy -vo null', shell=True, preexec_fn=os.setsid)
 time.sleep(15)
 os.killpg(os.getpgid(process.pid), signal.SIGTERM)
 
