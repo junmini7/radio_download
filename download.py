@@ -69,8 +69,7 @@ def download(record_time=15, channel_code=24):
 
 
 def actual_download(command, filename):
-    process = subprocess.Popen(command,  stdout=subprocess.PIPE, shell=True)
-    process.wait()
+    subprocess.run(command,  shell=True)
     now_downloading[filename][1] = dt.now()
 
 
@@ -80,6 +79,7 @@ schedule.every().day.at("18:00").do(download, 7200)
 @app.get("/", response_class=HTMLResponse)
 def index():
     files = os.listdir('/web/music')
+    files.sort(reverse=True)
     result = "".join([
                          f"<p>{k} : {tdtoko(dt.now() - v[0])}전부터 다운로드 시작, {f'{tdtoko(dt.now() - v[1])}전에 다운로드 완료' if v[1] else '아직 다운로드 중'}</p>"
                          for k, v in now_downloading.items()])
