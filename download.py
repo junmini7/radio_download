@@ -60,10 +60,10 @@ def download(record_time=15, channel_code=24):
     today_date = dt.now().strftime('%Y%m%d')
     now = dt.now().strftime("%Y%m%d%H%M%S")
     print(real_url)
-    filename = f"/web/music/everymusic_{now}_{record_time}s.mp3"
+    filename = f"everymusic_{now}_{record_time}s.mp3"
     now_downloading[filename] = [dt.now(), False]
     Thread(target=actual_download, args=(
-    f'ffmpeg -i "{real_url}" -vn -acodec libmp3lame -t {record_time} -metadata title="Every_music_{today_date}" -metadata date="{today_date}" -metadata album="KBS" -metadata track="{today_date}" {filename}',
+    f'ffmpeg -i "{real_url}" -vn -acodec libmp3lame -t {record_time} -metadata title="Every_music_{today_date}" -metadata date="{today_date}" -metadata album="KBS" -metadata track="{today_date}" /web/music/{filename}',
     filename)).start()
     return filename
 
