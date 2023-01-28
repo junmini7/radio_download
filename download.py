@@ -46,7 +46,7 @@ def tdtoko(s):
     return f"{hours}시간{minutes}분{seconds}초"
 
 
-def tdtoko_large(ti: td):
+def tdtoko_large(ti: td): #1시간 30분 이렇게 시 분 까지는 표시??
     ms, s, d = ti.microseconds, ti.seconds, ti.days
     if d > 365.25:
         return f"{int(d / 365.25)}년"
@@ -118,7 +118,7 @@ def index():
         else:
             introduce=""
         result += f"""{file} {convert_size(os.path.getsize(f'{music_directory}{file}'))}&emsp;{introduce}
-        <br><a href='/music/{file}' download='{file}'>다운로드</a>{f'''&emsp;<a onclick='delete_file("{file}")'>삭제</a>''' if file not in now_downloading or now_downloading[file][1] else ""}<br><audio controls><source src='/music/{file}' type='audio/mp3'></audio><br><br>"""
+        <br><a href='/music/{file}' download='{file}'>다운로드</a>{f'''&emsp;<a style='color:red' onclick='delete_file("{file}")'>삭제</a>''' if file not in now_downloading or now_downloading[file][1] else ""}<br><audio controls><source src='/music/{file}' type='audio/mp3'></audio><br><br>"""
     if not files:
         result += "아직 다운로드된 파일이 하나도 없습니다."
     result += f"""<br>예정된 다운로드 이벤트 : {', '.join([f'{i[0]}에 {tdtoko(i[1])} 동안' for i in download_events])} 다운로드가 예정되어 있습니다."""
