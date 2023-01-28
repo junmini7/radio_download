@@ -112,7 +112,7 @@ def index():
     for file in files:
         if file in now_downloading:
             if not now_downloading[file][1]:
-                introduce=f"{tdtoko_large(dt.now() - now_downloading[file][0])}전부터 다운로드 중, {tdtoko_large(now_downloading[file][2] - (dt.now() - now_downloading[file][0]))}후 완료 예정"
+                introduce=f"{tdtoko_large(dt.now() - now_downloading[file][0])} 전부터 다운로드 중, {tdtoko_large(now_downloading[file][2] - (dt.now() - now_downloading[file][0]))} 후 완료 예정"
             else:
                 introduce = f"{tdtoko_large(dt.now() - now_downloading[file][0])}전 {tdtoko_large(now_downloading[file][1] - now_downloading[file][0])} 동안 다운로드 완료"
         else:
