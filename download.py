@@ -42,7 +42,7 @@ id_to_ko_name = {
     "wink11": "KBS WORLD Radio CH1",
     "hanminjokradio": "한민족방송",
 }
-record_channel_ids = ['1fm']
+record_channel_ids = ["1fm"]
 now_recording = defaultdict(lambda: False)
 
 
@@ -105,7 +105,7 @@ def convert_size(size_bytes):
 class KBS:
     def __init__(self):
         self.channels_list = self.channels()
-        self.codes = [i['code'] for i in self.channels_list.values()]
+        self.codes = [i["code"] for i in self.channels_list.values()]
 
     def channels(self):
         channels_info = requests.get(
@@ -153,7 +153,12 @@ class KBS:
         }
         return on_air_data
 
-    def schedules(self, channel_codes=None, start=date.today() - td(days=1), end=date.today() + td(days=1)):
+    def schedules(
+        self,
+        channel_codes=None,
+        start=date.today() - td(days=1),
+        end=date.today() + td(days=1),
+    ):
         if channel_codes is None:
             channel_codes = ["24"]
         else:
@@ -163,19 +168,28 @@ class KBS:
         ).json()
         schedules_data = defaultdict(list)
         for day_schedule in schedules_info:
-            schedules_data[day_schedule['channel_code']] += [self.schedule_parser(i) for i in day_schedule["schedules"]]
+            schedules_data[day_schedule["channel_code"]] += [
+                self.schedule_parser(i) for i in day_schedule["schedules"]
+            ]
         return schedules_data
 
     def schedule_parser(self, schedule_data):
-        start = dt.strptime(schedule_data["service_date"] + schedule_data["service_start_time"],
-                            "%Y%m%d%H%M%S00")  # actual datetime
-        end = dt.strptime(schedule_data["service_date"] + schedule_data["service_end_time"], "%Y%m%d%H%M%S00")
+        start = dt.strptime(
+            schedule_data["service_date"] + schedule_data["service_start_time"],
+            "%Y%m%d%H%M%S00",
+        )  # actual datetime
+        end = dt.strptime(
+            schedule_data["service_date"] + schedule_data["service_end_time"],
+            "%Y%m%d%H%M%S00",
+        )
         if end < start:
             end += td(days=1)
         result = {
             "title": schedule_data["program_title"],
             "is_live": schedule_data["rerun_classification"],
-            "date": dt.strptime(schedule_data["service_date"], "%Y%m%d"),  # actual date, planned date has no meaning
+            "date": dt.strptime(
+                schedule_data["service_date"], "%Y%m%d"
+            ),  # actual date, planned date has no meaning
             "description": schedule_data["program_intention"],
             "staff": schedule_data["program_staff"],
             "actor": schedule_data["program_actor"],
@@ -218,7 +232,9 @@ class KBS:
 
     def record_download(self, id, program_schedule):
         now_recording[id] = True
-        kbs.download(id, (program_schedule['end'] - dt.now()).total_seconds(), program_schedule)
+        kbs.download(
+            id, (program_schedule["end"] - dt.now()).total_seconds(), program_schedule
+        )
         now_recording[id] = False
 
     def download_image(self, filename, url):
@@ -266,11 +282,11 @@ def index():
             download_information = ""
         result += f"""<img src='{radio_channel_logo}' height='30'></img>{file} {convert_size(os.path.getsize(f'{music_directory}{file}'))}&emsp;{download_information}<br>"""
         if file not in now_downloading or now_downloading[file][1]:
-            result += f'''<div class='row col-12 col-md-11 centering centering_text gx-5'>
+            result += f"""<div class='row col-12 col-md-11 centering centering_text gx-5'>
         <div class="col-12 col-md-5 col-xl-3 centering" style="margin-bottom:10px"><div class="row">
     <button class='btn btn-primary' onclick='download_file("/music/{file}","{file}")'>다운로드</button></div></div><div class="col-12 col-md-5 col-xl-3 centering" style="margin-bottom:10px"><div class="row">
-    <button class='btn btn-danger' onclick='delete_file("{file}")'>삭제</button></div></div></div><br><audio controls><source src='/music/{file}' type='audio/mp3'></audio><br>'''
-        result += '<br>'
+    <button class='btn btn-danger' onclick='delete_file("{file}")'>삭제</button></div></div></div><br><audio controls><source src='/music/{file}' type='audio/mp3'></audio><br>"""
+        result += "<br>"
 
     if not files:
         result += "아직 다운로드된 파일이 하나도 없습니다."
@@ -281,7 +297,7 @@ def index():
 @app.get("/delete", response_class=JSONResponse)
 def delete(name: str, request: Request):
     ip = str(request.client.host)
-    if ip.startswith('192.168'):
+    if ip.startswith("192.168"):
         try:
             # os.remove(f"{music_directory}{name}")
             shutil.move(f"{music_directory}{name}", f"{deleted_directory}{name}")
@@ -289,7 +305,7 @@ def delete(name: str, request: Request):
         except:
             return {"content": f"{name} 삭제 실패..."}
     else:
-        return {'content': '로컬 네트워크에서만 삭제가 가능합니다.'}
+        return {"content": "로컬 네트워크에서만 삭제가 가능합니다."}
 
 
 @app.get("/record", response_class=JSONResponse)
@@ -297,10 +313,25 @@ def record(record_time: int = 1, channel="1fm"):
     # if now_recording[channel]:
     #     return {'content':f'현재 {channel} 채널로 다운로드 중이므로 끝난 후 이용해주세요.'}
     Thread(target=kbs.download, args=(channel, record_time * 60)).start()
-    return {"content": f'{channel}채널에서 {record_time}분간 다운로드를 시작했습니다!'}
+    return {"content": f"{channel}채널에서 {record_time}분간 다운로드를 시작했습니다!"}
 
 
 global record_schedules
+
+
+@app.get("/schedules", response_class=JSONResponse)
+def recordschedules():
+    return record_schedules
+
+
+@app.get("/now_recording", response_class=JSONResponse)
+def nowrecording():
+    return now_recording
+
+
+@app.get("/now_downloading", response_class=JSONResponse)
+def nowdown():
+    return now_downloading
 
 
 @app.on_event("startup")
@@ -315,5 +346,10 @@ def schedule_check() -> None:
     for id in record_channel_ids:
         schedules = record_schedules[kbs.id_to_code(id)]
         for program_schedule in schedules:
-            if program_schedule['start']-td(seconds=10) <= dt.now() < program_schedule['end'] and not now_recording[id]: #10초전 시작
-                Thread(target=kbs.record_download,args=(id, program_schedule)).start()
+            if (
+                program_schedule["start"] - td(seconds=10)
+                <= dt.now()
+                < program_schedule["end"]
+                and not now_recording[id]
+            ):  # 10초전 시작
+                Thread(target=kbs.record_download, args=(id, program_schedule)).start()
