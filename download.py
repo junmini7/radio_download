@@ -35,19 +35,21 @@ app.add_middleware(
 
 
 def get_path(url):
-    return PurePosixPath(
+    try:
+        return PurePosixPath(
         unquote(
             urlparse(
                 url
             ).path
         )
     ).parts[1]
+    except:
+        return ''
 
 
 @app.middleware("http")
 async def logging(request: Request, call_next):
     ip = str(request.client.host)
-    print(str(request.url))
     if not ip.startswith('192.168.') and ip not in allowed_ip and 'auth' != get_path(str(request.url)):
         return HTTPException(status_code=403, detail="Not Allowed") #JSONResponse(content={'failed': f'{ip}는 허용되지 않은 ip 주소입니다. 비밀번호를 입력하여 일시적으로 허용받으세요.'})
     try:
