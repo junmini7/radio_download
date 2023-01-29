@@ -191,7 +191,7 @@ class KBS:
         Thread(
             target=actual_download,
             args=(
-                f'ffmpeg -re -i "{url}" -vn -acodec {codec[1]} -b:a {quality_option} -t {record_time} -metadata title="{program_information["title"]}_{today_date}" -metadata description="{program_information["description"]}" -metadata date="{today_date}" -metadata author="{program_information["actor"]}({program_information["staff"]})" -metadata album="{program_information["title"]}" -metadata track="{today_date}" {music_directory}{filename} >{filename}.log 2>&1',
+                f'ffmpeg -re -i "{url}" -vn -acodec {codec[1]} -b:a {quality_option} -t {record_time} -metadata title="{program_information["title"]}_{today_date}" -metadata description="{program_information["description"]}" -metadata date="{today_date}" -metadata author="{program_information["actor"]}({program_information["staff"]})" -metadata album="{program_information["title"]}" -metadata track="{today_date}" "{music_directory}{filename}" > "log/{filename}.log" 2>&1',
                 filename,
             ),
         ).start()
