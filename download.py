@@ -31,8 +31,11 @@ app.add_middleware(
 now_downloading = {}
 size_name = ("B", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB")
 music_directory = "/web/music/"
+quality_option = "128k"
+download_events = [["18:00", 7200], ["01:00", 7200]]
+codecs = [['mp3', 'libmp3lame'], ['m4a', 'aac']]
+codec = codecs[0]
 
-download_events = [["17:58", 7200], ["00:58", 7200]]
 
 def tdtoen(s):
     hours, remainder = divmod(s, 3600)
@@ -46,7 +49,7 @@ def tdtoko(s):
     return f"{hours}시간{minutes}분{seconds}초"
 
 
-def tdtoko_large(ti: td): #1시간 30분 이렇게 시 분 까지는 표시??
+def tdtoko_large(ti: td):  # 1시간 30분 이렇게 시 분 까지는 표시??
     ms, s, d = ti.microseconds, ti.seconds, ti.days
     if d > 365.25:
         return f"{int(d / 365.25)}년"
@@ -65,8 +68,6 @@ def tdtoko_large(ti: td): #1시간 30분 이렇게 시 분 까지는 표시??
     return f"{ms}us"
 
 
-
-
 def convert_size(size_bytes):
     if size_bytes == 0:
         return "0B"
@@ -77,20 +78,29 @@ def convert_size(size_bytes):
     return f"{s} {size_name[i]}"
 
 
-def download(record_time=15, channel_code=24):
+def kbs_url(channel_code):
     url = f'http://onair.kbs.co.kr/index.html?sname=onair&stype=live&ch_code={channel_code}'
-    url2 = f"http://onair.kbs.co.kr/index.html?sname=onair&stype=live&ch_code={channel_code}&ch_type=radioList"
+    # url2 = f"http://onair.kbs.co.kr/index.html?sname=onair&stype=live&ch_code={channel_code}&ch_type=radioList"
     data = bs(requests.get(url).text, 'html.parser').findAll('script')[18].text
     # data_2=bs(requests.get(url2).text,'html.parser').findAll('script')[18].text
     temp = data[data.find('channel_item') + 35:]
     real_url = temp[:temp.index('"') - 1]
+    return real_url
+
+
+def download(record_time=15, broadcast="KBS1"):
     today_date = dt.now().strftime('%Y%m%d')
     now = dt.now().strftime("%Y년%m월%d일%H시%M분%S초")
-    print(real_url)
-    filename = f"KBS_{now}_{tdtoko(record_time)}.mp3"
+    filename = f"{broadcast}_{now}_{tdtoko(record_time)}.{codec[0]}"
     now_downloading[filename] = [dt.now(), False, td(seconds=record_time)]
+    if broadcast == 'KBS1':
+        url = kbs_url(24)
+    elif broadcast == 'KBS2':
+        url = kbs_url(25)
+    else:
+        raise FileNotFoundError
     Thread(target=actual_download, args=(
-        f'ffmpeg -i "{real_url}" -vn -acodec libmp3lame -t {record_time} -metadata title="Every_music_{today_date}" -metadata date="{today_date}" -metadata album="KBS" -metadata track="{today_date}" {music_directory}{filename}',
+        f'ffmpeg -re -i "{url}" -vn -acodec {codec[1]} -b:a {quality_option} -t {record_time} -metadata title="{broadcast}_{today_date}" -metadata date="{today_date}" -metadata album="{broadcast}" -metadata track="{today_date}" {music_directory}{filename} >{filename}.log 2>&1',
         filename)).start()
     return filename
 
@@ -112,11 +122,11 @@ def index():
     for file in files:
         if file in now_downloading:
             if not now_downloading[file][1]:
-                introduce=f"{tdtoko_large(dt.now() - now_downloading[file][0])} 전부터 다운로드 중, {tdtoko_large(now_downloading[file][2] - (dt.now() - now_downloading[file][0]))} 후 완료 예정"
+                introduce = f"{tdtoko_large(dt.now() - now_downloading[file][0])} 전부터 다운로드 중, {tdtoko_large(now_downloading[file][2] - (dt.now() - now_downloading[file][0]))} 후 완료 예정"
             else:
                 introduce = f"{tdtoko_large(dt.now() - now_downloading[file][0])} 전, {tdtoko_large(now_downloading[file][1] - now_downloading[file][0])} 동안 다운로드 완료"
         else:
-            introduce=""
+            introduce = ""
         result += f"""{file} {convert_size(os.path.getsize(f'{music_directory}{file}'))}&emsp;{introduce}
         <br><a href='/music/{file}' download='{file}'>다운로드</a>{f'''&emsp;<a style='color:red' onclick='delete_file("{file}")'>삭제</a>''' if file not in now_downloading or now_downloading[file][1] else ""}<br><audio controls><source src='/music/{file}' type='audio/mp3'></audio><br><br>"""
     if not files:
@@ -136,10 +146,10 @@ def delete(name: str):
 
 @app.get("/record", response_class=JSONResponse)
 def record(time: int = 1):
-    return {"content": download(time*60)}
+    return {"content": download(time * 60)}
 
 
 @app.on_event("startup")
-@repeat_every(seconds=60)
+@repeat_every(seconds=1)
 def every_music() -> None:
     schedule.run_pending()
