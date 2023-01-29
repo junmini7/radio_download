@@ -238,7 +238,7 @@ class KBS:
     def record_download(self, id, program_schedule):
         now_recording[id] = True
         self.download(
-            id, (program_schedule["end"] - dt.now()).total_seconds(), program_schedule
+            id, int((program_schedule["end"] - dt.now()).total_seconds()), program_schedule
         )
         now_recording[id] = False
 
