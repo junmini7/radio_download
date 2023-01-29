@@ -1,5 +1,4 @@
 import requests
-from bs4 import BeautifulSoup as bs
 import subprocess
 from datetime import datetime as dt
 from datetime import timedelta as td
@@ -15,10 +14,8 @@ from fastapi.responses import (
 from collections import defaultdict
 from fastapi.middleware.cors import CORSMiddleware
 import os
-import schedule
 from threading import Thread
 from fastapi_utils.tasks import repeat_every
-import time
 import math
 from typing import List, Set, Dict, Tuple, Any
 import shutil
@@ -46,7 +43,8 @@ id_to_ko_name = {
     "hanminjokradio": "한민족방송",
 }
 record_channel_ids = ['1fm']
-now_recording=defaultdict(lambda :False)
+now_recording = defaultdict(lambda: False)
+
 
 def tdtoko(s):
     hours, remainder = divmod(s, 3600)
@@ -155,7 +153,7 @@ class KBS:
         }
         return on_air_data
 
-    def schedules(self, channel_codes=None, start=date.today(), end=date.today()):
+    def schedules(self, channel_codes=None, start=date.today() - td(days=1), end=date.today() + td(days=1)):
         if channel_codes is None:
             channel_codes = ["24"]
         else:
@@ -163,27 +161,29 @@ class KBS:
         schedules_info = requests.get(
             f'https://static.api.kbs.co.kr/mediafactory/v1/schedule/weekly?rtype=json&local_station_code=00&channel_code={",".join(channel_codes)}&program_planned_date_from={dt.strftime(start, "%Y%m%d")}&program_planned_date_to={dt.strftime(end, "%Y%m%d")}'
         ).json()
-        schedules_data = defaultdict(dict)
-        for schedule in schedules_info:
-            schedules_data[schedule["channel_code"]][
-                dt.strptime(schedule["program_planned_date"], "%Y%m%d")
-            ] = [self.schedule_parser(i) for i in schedule["schedules"]]
+        schedules_data = defaultdict(list)
+        for day_schedule in schedules_info:
+            schedules_data[day_schedule['channel_code']] += [self.schedule_parser(i) for i in day_schedule["schedules"]]
         return schedules_data
 
     def schedule_parser(self, schedule_data):
-        schedule_date = dt.strptime(schedule_data["service_date"], "%Y%m%d")
+        start = dt.strptime(schedule_data["service_date"] + schedule_data["service_start_time"],
+                            "%Y%m%d%H%M%S00")  # actual datetime
+        end = dt.strptime(schedule_data["service_date"] + schedule_data["service_end_time"], "%Y%m%d%H%M%S00")
+        if end < start:
+            end += td(days=1)
         result = {
             "title": schedule_data["program_title"],
             "is_live": schedule_data["rerun_classification"],
-            "date": schedule_date,
+            "date": dt.strptime(schedule_data["service_date"], "%Y%m%d"),  # actual date, planned date has no meaning
             "description": schedule_data["program_intention"],
             "staff": schedule_data["program_staff"],
             "actor": schedule_data["program_actor"],
             "genre": schedule_data["program_genre"],
             "thumbnail": schedule_data["image_w"],
             "url": schedule_data["homepage_url"],
-            "start": dt.strptime(schedule_data["service_date"] + schedule_data["service_start_time"], "%Y%m%d%H%M%S00"),
-            "end": dt.strptime(schedule_data["service_date"] + schedule_data["service_end_time"], "%Y%m%d%H%M%S00"),
+            "start": start,
+            "end": end,
             "duration": td(minutes=int(schedule_data["program_planned_duration_m"])),
             "schedule_id": schedule_data["schedule_unique_id"],
             "id": schedule_data["program_id"],
@@ -202,13 +202,24 @@ class KBS:
             program_information = self.on_air([code])[code][0]
         filename = f"{now}_{id}_{program_information['title'].replace(' ', '_')}_{program_information['is_live']}_{tdtoko(record_time)}.{codec[0]}"
         now_downloading[filename] = [dt.now(), False, td(seconds=record_time)]
-        now_recording[id]=True
-        Thread(
-            target=self.actual_download,
-            args=(url_info, record_time, program_information, filename),
-        ).start()
+        file_path = f"{music_directory}{filename}"
+        today_date = program_information["date"].strftime("%Y%m%d")
+        thumbnail_url = program_information["thumbnail"]
+        thumbnail_filename = self.download_image(
+            program_information["id"] + ".jpg", thumbnail_url
+        )
+        download_command = (
+            f'ffmpeg -re -i "{url_info["url"]}" -vn -acodec {codec[1]} -b:a {self.bitrate_parser(url_info["bitrate"])} -t {record_time} -metadata title="{program_information["title"]}_{today_date}" -metadata description="{program_information["description"]}" -metadata date="{today_date}" -metadata author="{program_information["actor"]}({program_information["staff"]})" -metadata album="{program_information["title"]}" -metadata track="{today_date}" -f {codec[0]} - | ffmpeg -i /dev/stdin -i "{thumbnail_filename}" -map 0:0 -map 1:0 -c copy -id3v2_version 3 "{file_path}"',
+            # > "log/{filename}.log" 2>&1',
+        )
+        subprocess.run(download_command, shell=True)
+        now_downloading[filename][1] = dt.now()
         """ffmpeg -i in.mp3 -i test.png -map 0:0 -map 1:0 -c copy -id3v2_version 3 -metadata:s:v title="Album cover" -metadata:s:v comment="Cover (front)" out.mp3"""
-        return filename
+
+    def record_download(self, id, program_schedule):
+        now_recording[id] = True
+        kbs.download(id, (program_schedule['end'] - dt.now()).total_seconds(), program_schedule)
+        now_recording[id] = False
 
     def download_image(self, filename, url):
         path = os.path.join("img", filename)
@@ -226,27 +237,15 @@ class KBS:
         return path
 
     def actual_download(self, url_info, record_time, program_information, filename):
-        file_path = f"{music_directory}{filename}"
-        today_date = program_information["date"].strftime("%Y%m%d")
-        thumbnail_url = program_information["thumbnail"]
-        thumbnail_filename = self.download_image(
-            program_information["id"] + ".jpg", thumbnail_url
-        )
-        download_command = (
-            f'ffmpeg -re -i "{url_info["url"]}" -vn -acodec {codec[1]} -b:a {self.bitrate_parser(url_info["bitrate"])} -t {record_time} -metadata title="{program_information["title"]}_{today_date}" -metadata description="{program_information["description"]}" -metadata date="{today_date}" -metadata author="{program_information["actor"]}({program_information["staff"]})" -metadata album="{program_information["title"]}" -metadata track="{today_date}" -f {codec[0]} - | ffmpeg -i /dev/stdin -i "{thumbnail_filename}" -map 0:0 -map 1:0 -c copy -id3v2_version 3 "{file_path}"',
-        # > "log/{filename}.log" 2>&1',
-        )
-        subprocess.run(download_command, shell=True)
-        now_downloading[filename][1] = dt.now()
-        now_recording[url_info['id']]=False
+        now = dt.now().strftime("%Y%m%d%H%M%S")
 
 
 kbs = KBS()
 
-for download_event in download_events:
-    schedule.every().day.at(download_event[0]).do(
-        kbs.download, download_event[2], download_event[1]
-    )
+# for download_event in download_events:
+#     schedule.every().day.at(download_event[0]).do(
+#         kbs.download, download_event[2], download_event[1]
+#     )
 max_bar = 200
 
 
@@ -280,23 +279,25 @@ def index():
 
 
 @app.get("/delete", response_class=JSONResponse)
-def delete(name: str):
-    try:
-        # os.remove(f"{music_directory}{name}")
-        shutil.move(f"{music_directory}{name}", f"{deleted_directory}{name}")
-        return {"content": f"{name} 삭제 성공!"}
-    except:
-        return {"content": f"{name} 삭제 실패..."}
+def delete(name: str, request: Request):
+    ip = str(request.client.host)
+    if ip.startswith('192.168'):
+        try:
+            # os.remove(f"{music_directory}{name}")
+            shutil.move(f"{music_directory}{name}", f"{deleted_directory}{name}")
+            return {"content": f"{name} 삭제 성공!"}
+        except:
+            return {"content": f"{name} 삭제 실패..."}
+    else:
+        return {'content': '로컬 네트워크에서만 삭제가 가능합니다.'}
 
 
 @app.get("/record", response_class=JSONResponse)
 def record(record_time: int = 1, channel="1fm"):
-    if now_recording[channel]:
-        return {'content':f'현재 {channel} 채널로 다운로드 중이므로 끝난 후 이용해주세요.'}
-    return {"content": kbs.download(channel, record_time * 60)}
-
-
-
+    # if now_recording[channel]:
+    #     return {'content':f'현재 {channel} 채널로 다운로드 중이므로 끝난 후 이용해주세요.'}
+    Thread(target=kbs.download, args=(channel, record_time * 60)).start()
+    return {"content": f'{channel}채널에서 {record_time}분간 다운로드를 시작했습니다!'}
 
 
 global record_schedules
@@ -305,14 +306,14 @@ global record_schedules
 @app.on_event("startup")
 @repeat_every(seconds=300)
 def schedule_update() -> None:
-    record_schedules = kbs.schedules([kbs.id_to_code(id) for id in record_channel_ids], end=date.today() + td(days=1))
+    record_schedules = kbs.schedules([kbs.id_to_code(id) for id in record_channel_ids])
 
 
 @app.on_event("startup")
 @repeat_every(seconds=1)
 def schedule_check() -> None:
     for id in record_channel_ids:
-        schedules=record_schedules[kbs.id_to_code(id)][date.today()]
+        schedules = record_schedules[kbs.id_to_code(id)]
         for program_schedule in schedules:
-            if program_schedule['start']<=dt.now()<program_schedule['end'] and not now_recording[id]:
-                kbs.download(id,(program_schedule['end']-dt.now()).total_seconds(),program_schedule)
+            if program_schedule['start']-td(seconds=10) <= dt.now() < program_schedule['end'] and not now_recording[id]: #10초전 시작
+                Thread(target=kbs.record_download,args=(id, program_schedule)).start()
