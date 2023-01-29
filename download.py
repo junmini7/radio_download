@@ -64,7 +64,7 @@ async def logging(request: Request, call_next):
 @app.get("/auth", response_class=JSONResponse)
 def auth(request: Request, password: Optional[str] = ''):
     ip = str(request.client.host)
-    if ip.startswith('192.168.'):
+    if ip.startswith('192.168.') or ip in allowed_ip:
         return {'success': ip}
     elif password == '0123':
         allowed_ip.add(ip)
