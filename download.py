@@ -53,7 +53,7 @@ def tdtoko(s):
 
 
 def tdtoen(time_diff:td):
-    s=time_diff.total_seconds()
+    s=int(time_diff.total_seconds())
     hours, remainder = divmod(s, 3600)
     minutes, seconds = divmod(remainder, 60)
     return f"{hours:02}:{minutes:02}:{seconds:02}"
@@ -220,18 +220,16 @@ def index():
     files.sort(reverse=True)
     result = ""
     for file in files:
+        channel=file.split('_')[0]
+        radio_channel_logo=kbs.channels_list[channel]['logo']
         if file in now_downloading:
             if not now_downloading[file][1]:
-                introduce = f"""{tdtoen(dt.now() - now_downloading[file][0])}/{tdtoen(now_downloading[file][2])} ({int((dt.now() - now_downloading[file][0]).total_seconds()/now_downloading[file][2].total_seconds()*100)}%)
-                <div>
-			<progress id="{file}" value="0" max="{max_bar}"></progress>
-		</div>
-                """
+                download_information = f"""{tdtoen(dt.now() - now_downloading[file][0])}/{tdtoen(now_downloading[file][2])} ({int((dt.now() - now_downloading[file][0]).total_seconds()/now_downloading[file][2].total_seconds()*100)}%)"""
             else:
-                introduce = f"{tdtoko_large(dt.now() - now_downloading[file][0])} 전, {tdtoko_large(now_downloading[file][1] - now_downloading[file][0])} 동안 다운로드 완료"
+                download_information = f"{tdtoko_large(dt.now() - now_downloading[file][0])} 전 다운로드 완료" #, {tdtoko_large(now_downloading[file][1] - now_downloading[file][0])} 동안
         else:
-            introduce = ""
-        result += f"""{file} {convert_size(os.path.getsize(f'{music_directory}{file}'))}&emsp;{introduce}
+            download_information = ""
+        result += f"""<img src='{radio_channel_logo}' height='100'></img>{file} {convert_size(os.path.getsize(f'{music_directory}{file}'))}&emsp;{download_information}
         <br><a href='/music/{file}' download='{file}'>다운로드</a>{f'''&emsp;<a style='color:red' onclick='delete_file("{file}")'>삭제</a>''' if file not in now_downloading or now_downloading[file][1] else ""}<br><audio controls><source src='/music/{file}' type='audio/mp3'></audio><br><br>"""
     if not files:
         result += "아직 다운로드된 파일이 하나도 없습니다."
