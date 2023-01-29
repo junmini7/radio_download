@@ -106,6 +106,7 @@ def convert_size(size_bytes):
 class KBS:
     def __init__(self):
         self.channels_list = self.channels()
+        self.codes=[i['code'] for i in self.channels_list.values()]
 
     def channels(self):
         channels_info = requests.get(
@@ -228,9 +229,6 @@ class KBS:
             f'ffmpeg -re -i "{url_info["url"]}" -vn -acodec {codec[1]} -b:a {self.bitrate_parser(url_info["bitrate"])} -t {record_time} -metadata title="{program_information["title"]}_{today_date}" -metadata description="{program_information["description"]}" -metadata date="{today_date}" -metadata author="{program_information["actor"]}({program_information["staff"]})" -metadata album="{program_information["title"]}" -metadata track="{today_date}" -f {codec[0]} - | ffmpeg -i /dev/stdin -i "{thumbnail_filename}" -map 0:0 -map 1:0 -c copy -id3v2_version 3 "{file_path}"',# > "log/{filename}.log" 2>&1',
         )
         subprocess.run(download_command, shell=True)
-        #
-        # album_art_command = f''
-        # subprocess.run(album_art_command, shell=True)
         now_downloading[filename][1] = dt.now()
 
 
