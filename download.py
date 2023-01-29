@@ -229,14 +229,22 @@ def index():
                 download_information = f"{tdtoko_large(dt.now() - now_downloading[file][0])} 전 다운로드 완료" #, {tdtoko_large(now_downloading[file][1] - now_downloading[file][0])} 동안
         else:
             download_information = ""
-        result += f"""<img src='{radio_channel_logo}' height='100'></img>{file} {convert_size(os.path.getsize(f'{music_directory}{file}'))}&emsp;{download_information}
-        <br><a href='/music/{file}' download='{file}'>다운로드</a>{f'''&emsp;<a style='color:red' onclick='delete_file("{file}")'>삭제</a>''' if file not in now_downloading or now_downloading[file][1] else ""}<br><audio controls><source src='/music/{file}' type='audio/mp3'></audio><br><br>"""
+        result += f"""<img src='{radio_channel_logo}' height='30'></img>{file} {convert_size(os.path.getsize(f'{music_directory}{file}'))}&emsp;{download_information}
+        <br>
+        <div class='row col-12 col-md-11 centering centering_text gx-5'>
+        <div class="col-12 col-md-5 col-xl-3 centering" style="margin-bottom:10px"><div class="row">
+    <button class='btn btn-primary'><a href='/music/{file}' download='{file}'>다운로드</a></button></div></div>
+    {f'''<div class="col-12 col-md-5 col-xl-3 centering" style="margin-bottom:10px"><div class="row">
+    <button class='btn btn-danger'><a style='color:red' onclick='delete_file("{file}")'>삭제</a></button></div></div>''' if file not in now_downloading or now_downloading[file][1] else ""}
+        </div>
+        <br><audio controls><source src='/music/{file}' type='audio/mp3'></audio><br><br>"""
     if not files:
         result += "아직 다운로드된 파일이 하나도 없습니다."
     result += f"""<br>예정된 다운로드 이벤트 : {', '.join([f'{i[0]}에 {tdtoko(i[1])} 동안 {i[2]} 채널' for i in download_events])} 다운로드가 예정되어 있습니다."""
     return result
 
-
+f"""<div class="col-12 col-md-5 col-xl-3 centering" style="margin-bottom:10px"><div class="row">
+    <button class='btn btn-primary' onclick='location.href="{link}"'>{name}</button></div></div>"""
 @app.get("/delete", response_class=JSONResponse)
 def delete(name: str):
     try:
