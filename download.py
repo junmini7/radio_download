@@ -35,15 +35,16 @@ now_downloading = {}
 size_name = ("B", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB")
 music_directory = "/web/music/"
 deleted_directory = "/web/deleted_music/"
-quality_option = "128k"
-download_events = [["18:00", 7200, '1fm'], ["01:00", 7200,'1fm']]
+download_events = [["18:00", 7200, "1fm"], ["01:00", 7200, "1fm"]]
 codecs = [["mp3", "libmp3lame"], ["m4a", "aac"]]
 codec = codecs[0]
-id_to_ko_name = {'1fm': "Classic FM", '2fm': 'Cool FM', 'worldradio': 'KBS WORLD Radio CH2',
-                 'wink11': 'KBS WORLD Radio CH1', 'hanminjokradio': '한민족방송'}
-
-
-
+id_to_ko_name = {
+    "1fm": "Classic FM",
+    "2fm": "Cool FM",
+    "worldradio": "KBS WORLD Radio CH2",
+    "wink11": "KBS WORLD Radio CH1",
+    "hanminjokradio": "한민족방송",
+}
 
 
 def tdtoko(s):
@@ -52,11 +53,12 @@ def tdtoko(s):
     return f"{hours}시간{minutes}분{seconds}초"
 
 
-def tdtoen(time_diff:td):
-    s=int(time_diff.total_seconds())
+def tdtoen(time_diff: td):
+    s = int(time_diff.total_seconds())
     hours, remainder = divmod(s, 3600)
     minutes, seconds = divmod(remainder, 60)
     return f"{hours:02}:{minutes:02}:{seconds:02}"
+
 
 def tdtoko_large(ti: td):  # 1시간 30분 이렇게 시 분 까지는 표시??
     ms, s, d = ti.microseconds, ti.seconds, ti.days
@@ -106,20 +108,20 @@ class KBS:
         self.channels_list = self.channels()
 
     def channels(self):
-        channels_info = requests.get("https://cfpwwwapi.kbs.co.kr/api/v1/landing/live").json()[
-            "channel"
-        ][3]["channel_master"]
+        channels_info = requests.get(
+            "https://cfpwwwapi.kbs.co.kr/api/v1/landing/live"
+        ).json()["channel"][3]["channel_master"]
         result = {}
         for channel_info in channels_info:
-            result[channel_info['item'][0]['channel_id']] = {
-                'code': channel_info['channel_code'],
-                'title': channel_info['title'],
+            result[channel_info["item"][0]["channel_id"]] = {
+                "code": channel_info["channel_code"],
+                "title": channel_info["title"],
                 "logo": channel_info["image_path_channel_logo"],
                 "thumbnail": channel_info["image_path_video_thumbnail"],
             }
         return result
 
-    def channel(self, channel_code='24'):
+    def channel(self, channel_code="24"):
         url_info = requests.get(
             f"https://cfpwwwapi.kbs.co.kr/api/v1/landing/live/channel_code/{channel_code}"
         ).json()
@@ -133,6 +135,9 @@ class KBS:
             "title": url_info["channelMaster"]["title"],
         }
         return result
+
+    def bitrate_parser(self, bitrate):
+        return bitrate.replace("Kbps", "k")
 
     def on_air(self, channel_codes=None):
         if channel_codes is None:
@@ -184,33 +189,56 @@ class KBS:
 
     def download(self, id="1fm", record_time=15):
         now = dt.now().strftime("%Y%m%d%H%M%S")
-        #now = dt.now().strftime("%Y년%m월%d일%H시%M분%S초")
-        code = self.channels_list[id]['code']
-        url = self.channel(code)['url']
+        # now = dt.now().strftime("%Y년%m월%d일%H시%M분%S초")
+        code = self.channels_list[id]["code"]
+        url_info = self.channel(code)
         program_information = kbs.on_air([code])[code][0]
-        today_date = program_information['date'].strftime("%Y%m%d")
-        filename = f"{id}_{program_information['title'].replace(' ','_')}_{now}_{tdtoko(record_time)}.{codec[0]}"
+        filename = f"{id}_{program_information['title'].replace(' ', '_')}_{now}_{tdtoko(record_time)}.{codec[0]}"
         now_downloading[filename] = [dt.now(), False, td(seconds=record_time)]
         Thread(
-            target=actual_download,
-            args=(
-                f'ffmpeg -re -i "{url}" -vn -acodec {codec[1]} -b:a {quality_option} -t {record_time} -metadata title="{program_information["title"]}_{today_date}" -metadata description="{program_information["description"]}" -metadata date="{today_date}" -metadata author="{program_information["actor"]}({program_information["staff"]})" -metadata album="{program_information["title"]}" -metadata track="{today_date}" "{music_directory}{filename}" > "log/{filename}.log" 2>&1',
-                filename,
-            ),
+            target=self.actual_download,
+            args=(url_info, record_time, program_information, filename),
         ).start()
+        """ffmpeg -i in.mp3 -i test.png -map 0:0 -map 1:0 -c copy -id3v2_version 3 -metadata:s:v title="Album cover" -metadata:s:v comment="Cover (front)" out.mp3"""
         return filename
+
+    def download_image(self, filename, url):
+        path = os.path.join("img", filename)
+        if not os.path.exists(path):
+            try:
+                r = requests.get(url, stream=True)
+            except:
+                print(url)
+                # raise FileNotFoundError
+            else:
+                if r.status_code == 200:
+                    with open(path, "wb") as f:
+                        for chunk in r:
+                            f.write(chunk)
+        return path
+
+    def actual_download(self, url_info, record_time, program_information, filename):
+        file_path = f"{music_directory}{filename}"
+        today_date = program_information["date"].strftime("%Y%m%d")
+        download_command = (
+            f'ffmpeg -re -i "{url_info["url"]}" -vn -acodec {codec[1]} -b:a {self.bitrate_parser(url_info["bitrate"])} -t {record_time} -metadata title="{program_information["title"]}_{today_date}" -metadata description="{program_information["description"]}" -metadata date="{today_date}" -metadata author="{program_information["actor"]}({program_information["staff"]})" -metadata album="{program_information["title"]}" -metadata track="{today_date}" "{file_path}" > "log/{filename}.log" 2>&1',
+        )
+        subprocess.run(download_command, shell=True)
+        thumbnail_url = program_information["thumbnail"]
+        thumbnail_filename = self.download_image(
+            program_information["id"] + ".jpg", thumbnail_url
+        )
+        album_art_command = f'ffmpeg -y -i "{file_path}" -i "{thumbnail_filename}" -map 0:0 -map 1:0 -c copy -id3v2_version 3 "{file_path}"'
+        subprocess.run(album_art_command, shell=True)
+        now_downloading[filename][1] = dt.now()
 
 
 kbs = KBS()
 
-
-def actual_download(command, filename):
-    subprocess.run(command, shell=True)
-    now_downloading[filename][1] = dt.now()
-
-
 for download_event in download_events:
-    schedule.every().day.at(download_event[0]).do(kbs.download, download_event[2], download_event[1])
+    schedule.every().day.at(download_event[0]).do(
+        kbs.download, download_event[2], download_event[1]
+    )
 max_bar = 200
 
 
@@ -220,13 +248,13 @@ def index():
     files.sort(reverse=True)
     result = ""
     for file in files:
-        channel=file.split('_')[0]
-        radio_channel_logo=kbs.channels_list[channel]['logo']
+        channel = file.split("_")[0]
+        radio_channel_logo = kbs.channels_list[channel]["logo"]
         if file in now_downloading:
             if not now_downloading[file][1]:
-                download_information = f"""{tdtoen(dt.now() - now_downloading[file][0])}/{tdtoen(now_downloading[file][2])} ({int((dt.now() - now_downloading[file][0]).total_seconds()/now_downloading[file][2].total_seconds()*100)}%)"""
+                download_information = f"""{tdtoen(dt.now() - now_downloading[file][0])}/{tdtoen(now_downloading[file][2])} ({int((dt.now() - now_downloading[file][0]).total_seconds() / now_downloading[file][2].total_seconds() * 100)}%)"""
             else:
-                download_information = f"{tdtoko_large(dt.now() - now_downloading[file][0])} 전 다운로드 완료" #, {tdtoko_large(now_downloading[file][1] - now_downloading[file][0])} 동안
+                download_information = f"{tdtoko_large(dt.now() - now_downloading[file][0])} 전 다운로드 완료"  # , {tdtoko_large(now_downloading[file][1] - now_downloading[file][0])} 동안
         else:
             download_information = ""
         result += f"""<img src='{radio_channel_logo}' height='30'></img>{file} {convert_size(os.path.getsize(f'{music_directory}{file}'))}&emsp;{download_information}
@@ -243,6 +271,7 @@ def index():
     result += f"""<br>예정된 다운로드 이벤트 : {', '.join([f'{i[0]}에 {tdtoko(i[1])} 동안 {i[2]} 채널' for i in download_events])} 다운로드가 예정되어 있습니다."""
     return result
 
+
 @app.get("/delete", response_class=JSONResponse)
 def delete(name: str):
     try:
@@ -254,7 +283,7 @@ def delete(name: str):
 
 
 @app.get("/record", response_class=JSONResponse)
-def record(record_time: int = 1, channel='1fm'):
+def record(record_time: int = 1, channel="1fm"):
     return {"content": kbs.download(channel, record_time * 60)}
 
 
