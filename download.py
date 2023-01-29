@@ -35,7 +35,7 @@ app.add_middleware(
 @app.middleware("http")
 async def logging(request: Request, call_next):
     ip = str(request.client.host)
-    print(request.body)
+    print(request.json())
     if not ip.startswith('192.168.') and ip not in allowed_ip:
         return JSONResponse({'failed': f'{ip}는 허용되지 않은 ip 주소입니다. 비밀번호를 입력하여 일시적으로 허용받으세요.'})
     try:
