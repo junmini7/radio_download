@@ -34,7 +34,7 @@ app.add_middleware(
 now_downloading = {}
 size_name = ("B", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB")
 music_directory = "/web/music/"
-deleted_directory = "~/deleted_radio/"
+deleted_directory = "/web/deleted_music/"
 quality_option = "128k"
 download_events = [["18:00", 7200, '1fm'], ["01:00", 7200,'1fm']]
 codecs = [["mp3", "libmp3lame"], ["m4a", "aac"]]
