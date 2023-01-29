@@ -247,7 +247,7 @@ def delete(name: str):
 
 
 @app.get("/record", response_class=JSONResponse)
-def record(record_time: int = 1, channel=''):
+def record(record_time: int = 1, channel='1fm'):
     return {"content": kbs.download(channel, record_time * 60)}
 
 
