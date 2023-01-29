@@ -52,6 +52,12 @@ def tdtoko(s):
     return f"{hours}시간{minutes}분{seconds}초"
 
 
+def tdtoen(time_diff:td):
+    s=td.total_seconds()
+    hours, remainder = divmod(s, 3600)
+    minutes, seconds = divmod(remainder, 60)
+    return f"{hours:02}:{minutes:02}:{seconds:02}"
+
 def tdtoko_large(ti: td):  # 1시간 30분 이렇게 시 분 까지는 표시??
     ms, s, d = ti.microseconds, ti.seconds, ti.days
     if d > 365.25:
@@ -177,12 +183,13 @@ class KBS:
         return result
 
     def download(self, id="1fm", record_time=15):
-        now = dt.now().strftime("%Y년%m월%d일%H시%M분%S초")
+        now = dt.now().strftime("%Y%m%d%H%M%S")
+        #now = dt.now().strftime("%Y년%m월%d일%H시%M분%S초")
         code = self.channels_list[id]['code']
         url = self.channel(code)['url']
         program_information = kbs.on_air([code])[code][0]
         today_date = program_information['date'].strftime("%Y%m%d")
-        filename = f"{id}_{program_information['title']}_{now}_{tdtoko(record_time)}.{codec[0]}"
+        filename = f"{id}_{program_information['title'].replace(' ','_')}_{now}_{tdtoko(record_time)}.{codec[0]}"
         now_downloading[filename] = [dt.now(), False, td(seconds=record_time)]
         Thread(
             target=actual_download,
@@ -215,7 +222,7 @@ def index():
     for file in files:
         if file in now_downloading:
             if not now_downloading[file][1]:
-                introduce = f"""{str(dt.now() - now_downloading[file][0])}/{str(now_downloading[file][2])} 후 완료 예정
+                introduce = f"""{tdtoen(dt.now() - now_downloading[file][0])}/{tdtoen(now_downloading[file][2])} ({int((dt.now() - now_downloading[file][0]).total_seconds()/now_downloading[file][2].total_seconds()*100)}%)
                 <div>
 			<progress id="{file}" value="0" max="{max_bar}"></progress>
 		</div>
