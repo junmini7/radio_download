@@ -381,16 +381,16 @@ def schedule_update():
     kbs.update_schedules()
 
 
-@app.on_event("startup")
-@repeat_every(seconds=1)
-def schedule_check() -> None:
-    for id in record_channel_ids:
-        schedules = kbs.record_schedules[kbs.id_to_code(id)]
-        for program_schedule in schedules:
-            if (
-                    program_schedule["start"] - td(seconds=10)
-                    <= dt.now()
-                    < program_schedule["end"]
-                    and not now_recording[id]
-            ):  # 10초전 시작
-                Thread(target=kbs.record_download, args=(id, program_schedule)).start()
+# @app.on_event("startup")
+# @repeat_every(seconds=1)
+# def schedule_check() -> None:
+#     for id in record_channel_ids:
+#         schedules = kbs.record_schedules[kbs.id_to_code(id)]
+#         for program_schedule in schedules:
+#             if (
+#                     program_schedule["start"] - td(seconds=10)
+#                     <= dt.now()
+#                     < program_schedule["end"]
+#                     and not now_recording[id]
+#             ):  # 10초전 시작
+#                 Thread(target=kbs.record_download, args=(id, program_schedule)).start()
