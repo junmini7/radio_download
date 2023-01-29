@@ -243,8 +243,6 @@ def index():
     result += f"""<br>예정된 다운로드 이벤트 : {', '.join([f'{i[0]}에 {tdtoko(i[1])} 동안 {i[2]} 채널' for i in download_events])} 다운로드가 예정되어 있습니다."""
     return result
 
-f"""<div class="col-12 col-md-5 col-xl-3 centering" style="margin-bottom:10px"><div class="row">
-    <button class='btn btn-primary' onclick='location.href="{link}"'>{name}</button></div></div>"""
 @app.get("/delete", response_class=JSONResponse)
 def delete(name: str):
     try:
