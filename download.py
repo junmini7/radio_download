@@ -104,8 +104,13 @@ def convert_size(size_bytes):
 
 class KBS:
     def __init__(self):
+        self.record_schedules = None
         self.channels_list = self.channels()
         self.codes = [i["code"] for i in self.channels_list.values()]
+        self.update_schedules()
+
+    def update_schedules(self):
+        self.record_schedules = kbs.schedules([kbs.id_to_code(id) for id in record_channel_ids])
 
     def channels(self):
         channels_info = requests.get(
@@ -154,10 +159,10 @@ class KBS:
         return on_air_data
 
     def schedules(
-        self,
-        channel_codes=None,
-        start=date.today() - td(days=1),
-        end=date.today() + td(days=1),
+            self,
+            channel_codes=None,
+            start=date.today() - td(days=1),
+            end=date.today() + td(days=1),
     ):
         if channel_codes is None:
             channel_codes = ["24"]
@@ -316,12 +321,10 @@ def record(record_time: int = 1, channel="1fm"):
     return {"content": f"{channel}채널에서 {record_time}분간 다운로드를 시작했습니다!"}
 
 
-global record_schedules
-
 
 @app.get("/schedules", response_class=JSONResponse)
 def recordschedules():
-    return record_schedules
+    return kbs.record_schedules
 
 
 @app.get("/now_recording", response_class=JSONResponse)
@@ -336,20 +339,20 @@ def nowdown():
 
 @app.on_event("startup")
 @repeat_every(seconds=300)
-def schedule_update() -> None:
-    record_schedules = kbs.schedules([kbs.id_to_code(id) for id in record_channel_ids])
+def schedule_update():
+    kbs.update_schedules()
 
 
 @app.on_event("startup")
 @repeat_every(seconds=1)
 def schedule_check() -> None:
     for id in record_channel_ids:
-        schedules = record_schedules[kbs.id_to_code(id)]
+        schedules = kbs.record_schedules[kbs.id_to_code(id)]
         for program_schedule in schedules:
             if (
-                program_schedule["start"] - td(seconds=10)
-                <= dt.now()
-                < program_schedule["end"]
-                and not now_recording[id]
+                    program_schedule["start"] - td(seconds=10)
+                    <= dt.now()
+                    < program_schedule["end"]
+                    and not now_recording[id]
             ):  # 10초전 시작
                 Thread(target=kbs.record_download, args=(id, program_schedule)).start()
