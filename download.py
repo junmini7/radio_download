@@ -20,6 +20,8 @@ import math
 from typing import List, Set, Dict, Tuple, Any
 import shutil
 import fastapi
+from urllib.parse import unquote, urlparse
+from pathlib import PurePosixPath
 
 allowed_ip = set()
 app = FastAPI()
@@ -32,11 +34,20 @@ app.add_middleware(
 )
 
 
+def get_path(url):
+    return PurePosixPath(
+        unquote(
+            urlparse(
+                url
+            ).path
+        )
+    ).parts[1]
+
+
 @app.middleware("http")
 async def logging(request: Request, call_next):
     ip = str(request.client.host)
-    print(request.url)
-    if not ip.startswith('192.168.') and ip not in allowed_ip:
+    if not ip.startswith('192.168.') and ip not in allowed_ip and 'auth'!=get_path(request.url):
         return JSONResponse({'failed': f'{ip}는 허용되지 않은 ip 주소입니다. 비밀번호를 입력하여 일시적으로 허용받으세요.'})
     try:
         response = await call_next(request)
@@ -45,6 +56,15 @@ async def logging(request: Request, call_next):
         return fastapi.responses.HTMLResponse(
             content="서버에 에러가 발생했습니다...", status_code=200
         )
+@app.get("/auth",response_class=JSONResponse)
+def auth(password:str,request:Request):
+    ip=str(request.client.host)
+    if password=='0123':
+        allowed_ip.add(ip)
+        return {'success':f'외부 IP {ip}가 등록되었습니다!'}
+    else:
+        return {'failed':'비밀번호가 일치하지 않습니다.'}
+
 
 
 now_downloading = {}
@@ -357,17 +377,16 @@ def nowdown():
 def schedule_update():
     kbs.update_schedules()
 
-
-# @app.on_event("startup")
-# @repeat_every(seconds=1)
-# def schedule_check() -> None:
-#     for id in record_channel_ids:
-#         schedules = kbs.record_schedules[kbs.id_to_code(id)]
-#         for program_schedule in schedules:
-#             if (
-#                     program_schedule["start"] - td(seconds=10)
-#                     <= dt.now()
-#                     < program_schedule["end"]
-#                     and not now_recording[id]
-#             ):  # 10초전 시작
-#                 Thread(target=kbs.record_download, args=(id, program_schedule)).start()
+@app.on_event("startup")
+@repeat_every(seconds=1)
+def schedule_check() -> None:
+    for id in record_channel_ids:
+        schedules = kbs.record_schedules[kbs.id_to_code(id)]
+        for program_schedule in schedules:
+            if (
+                    program_schedule["start"] - td(seconds=10)
+                    <= dt.now()
+                    < program_schedule["end"]
+                    and not now_recording[id]
+            ):  # 10초전 시작
+                Thread(target=kbs.record_download, args=(id, program_schedule)).start()
