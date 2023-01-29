@@ -110,7 +110,7 @@ class KBS:
         self.update_schedules()
 
     def update_schedules(self):
-        self.record_schedules = kbs.schedules([kbs.id_to_code(id) for id in record_channel_ids])
+        self.record_schedules = self.schedules([self.id_to_code(id) for id in record_channel_ids])
 
     def channels(self):
         channels_info = requests.get(
@@ -237,7 +237,7 @@ class KBS:
 
     def record_download(self, id, program_schedule):
         now_recording[id] = True
-        kbs.download(
+        self.download(
             id, (program_schedule["end"] - dt.now()).total_seconds(), program_schedule
         )
         now_recording[id] = False
