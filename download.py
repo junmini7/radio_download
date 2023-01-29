@@ -19,7 +19,9 @@ from fastapi_utils.tasks import repeat_every
 import math
 from typing import List, Set, Dict, Tuple, Any
 import shutil
+import fastapi
 
+allowed_ip = set()
 app = FastAPI()
 app.add_middleware(
     CORSMiddleware,
@@ -28,6 +30,23 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.middleware("http")
+async def logging(request: Request, call_next):
+    ip = str(request.client.host)
+    print(request.path_params)
+    if not ip.startswith('192.168.') and ip not in allowed_ip:
+        return JSONResponse({'failed': f'{ip}는 허용되지 않은 ip 주소입니다. 비밀번호를 입력하여 일시적으로 허용받으세요.'})
+    try:
+        response = await call_next(request)
+        return response
+    except Exception as e:
+        return fastapi.responses.HTMLResponse(
+            content="서버에 에러가 발생했습니다...", status_code=200
+        )
+
+
 now_downloading = {}
 size_name = ("B", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB")
 music_directory = "/web/music/"
@@ -257,9 +276,6 @@ class KBS:
                             f.write(chunk)
         return path
 
-    def actual_download(self, url_info, record_time, program_information, filename):
-        now = dt.now().strftime("%Y%m%d%H%M%S")
-
 
 kbs = KBS()
 
@@ -295,7 +311,7 @@ def index():
 
     if not files:
         result += "아직 다운로드된 파일이 하나도 없습니다."
-    result += f"""<br>예정된 다운로드 이벤트 : {', '.join([f'{i[0]}에 {tdtoko(i[1])} 동안 {i[2]} 채널' for i in download_events])} 다운로드가 예정되어 있습니다."""
+    # result += f"""<br>예정된 다운로드 이벤트 : {', '.join([f'{i[0]}에 {tdtoko(i[1])} 동안 {i[2]} 채널' for i in download_events])} 다운로드가 예정되어 있습니다."""
     return result
 
 
@@ -321,7 +337,6 @@ def record(record_time: int = 1, channel="1fm"):
     return {"content": f"{channel}채널에서 {record_time}분간 다운로드를 시작했습니다!"}
 
 
-
 @app.get("/schedules", response_class=JSONResponse)
 def recordschedules():
     return kbs.record_schedules
@@ -343,16 +358,16 @@ def schedule_update():
     kbs.update_schedules()
 
 
-@app.on_event("startup")
-@repeat_every(seconds=1)
-def schedule_check() -> None:
-    for id in record_channel_ids:
-        schedules = kbs.record_schedules[kbs.id_to_code(id)]
-        for program_schedule in schedules:
-            if (
-                    program_schedule["start"] - td(seconds=10)
-                    <= dt.now()
-                    < program_schedule["end"]
-                    and not now_recording[id]
-            ):  # 10초전 시작
-                Thread(target=kbs.record_download, args=(id, program_schedule)).start()
+# @app.on_event("startup")
+# @repeat_every(seconds=1)
+# def schedule_check() -> None:
+#     for id in record_channel_ids:
+#         schedules = kbs.record_schedules[kbs.id_to_code(id)]
+#         for program_schedule in schedules:
+#             if (
+#                     program_schedule["start"] - td(seconds=10)
+#                     <= dt.now()
+#                     < program_schedule["end"]
+#                     and not now_recording[id]
+#             ):  # 10초전 시작
+#                 Thread(target=kbs.record_download, args=(id, program_schedule)).start()
