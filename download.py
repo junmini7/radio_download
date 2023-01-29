@@ -220,16 +220,17 @@ class KBS:
     def actual_download(self, url_info, record_time, program_information, filename):
         file_path = f"{music_directory}{filename}"
         today_date = program_information["date"].strftime("%Y%m%d")
-        download_command = (
-            f'ffmpeg -re -i "{url_info["url"]}" -vn -acodec {codec[1]} -b:a {self.bitrate_parser(url_info["bitrate"])} -t {record_time} -metadata title="{program_information["title"]}_{today_date}" -metadata description="{program_information["description"]}" -metadata date="{today_date}" -metadata author="{program_information["actor"]}({program_information["staff"]})" -metadata album="{program_information["title"]}" -metadata track="{today_date}" "{file_path}" > "log/{filename}.log" 2>&1',
-        )
-        subprocess.run(download_command, shell=True)
         thumbnail_url = program_information["thumbnail"]
         thumbnail_filename = self.download_image(
             program_information["id"] + ".jpg", thumbnail_url
         )
-        album_art_command = f'ffmpeg -y -i "{file_path}" -i "{thumbnail_filename}" -map 0:0 -map 1:0 -c copy -id3v2_version 3 "{file_path}"'
-        subprocess.run(album_art_command, shell=True)
+        download_command = (
+            f'ffmpeg -re -i "{url_info["url"]}" -vn -acodec {codec[1]} -b:a {self.bitrate_parser(url_info["bitrate"])} -t {record_time} -metadata title="{program_information["title"]}_{today_date}" -metadata description="{program_information["description"]}" -metadata date="{today_date}" -metadata author="{program_information["actor"]}({program_information["staff"]})" -metadata album="{program_information["title"]}" -metadata track="{today_date}" -f {codec[0]} - | ffmpeg -i /dev/stdin -i "{thumbnail_filename}" -map 0:0 -map 1:0 -c copy -id3v2_version 3 "{file_path}"',# > "log/{filename}.log" 2>&1',
+        )
+        subprocess.run(download_command, shell=True)
+        #
+        # album_art_command = f''
+        # subprocess.run(album_art_command, shell=True)
         now_downloading[filename][1] = dt.now()
 
 
