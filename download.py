@@ -43,11 +43,7 @@ id_to_ko_name = {'1fm': "Classic FM", '2fm': 'Cool FM', 'worldradio': 'KBS WORLD
                  'wink11': 'KBS WORLD Radio CH1', 'hanminjokradio': '한민족방송'}
 
 
-def tdtoen(time_diff: td):
-    s = time_diff.total_seconds()
-    hours, remainder = divmod(s, 3600)
-    minutes, seconds = divmod(remainder, 60)
-    return f"{hours:02}:{minutes:02}:{seconds:02}"
+
 
 
 def tdtoko(s):
@@ -219,7 +215,7 @@ def index():
     for file in files:
         if file in now_downloading:
             if not now_downloading[file][1]:
-                introduce = f"""{tdtoen(dt.now() - now_downloading[file][0])}/{tdtoen(now_downloading[file][2])} 후 완료 예정
+                introduce = f"""{str(dt.now() - now_downloading[file][0])}/{str(now_downloading[file][2])} 후 완료 예정
                 <div>
 			<progress id="{file}" value="0" max="{max_bar}"></progress>
 		</div>
