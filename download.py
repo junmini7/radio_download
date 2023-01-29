@@ -35,7 +35,7 @@ app.add_middleware(
 @app.middleware("http")
 async def logging(request: Request, call_next):
     ip = str(request.client.host)
-    print(request.url)
+    print(request.body)
     if not ip.startswith('192.168.') and ip not in allowed_ip:
         return JSONResponse({'failed': f'{ip}는 허용되지 않은 ip 주소입니다. 비밀번호를 입력하여 일시적으로 허용받으세요.'})
     try:
@@ -172,8 +172,8 @@ class KBS:
             f"https://static.api.kbs.co.kr/mediafactory/v1/schedule/onair_now?rtype=json&local_station_code=00&channel_code={','.join(channel_codes)}"
         ).json()
         on_air_data = {
-            i["channel_code"]: [self.schedule_parser(i) for i in i["schedules"]]
-            for i in on_air_info
+            j["channel_code"]: [self.schedule_parser(i) for i in j["schedules"] if i]
+            for j in on_air_info
         }
         return on_air_data
 
