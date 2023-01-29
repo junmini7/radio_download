@@ -17,7 +17,7 @@ import os
 from threading import Thread
 from fastapi_utils.tasks import repeat_every
 import math
-from typing import List, Set, Dict, Tuple, Any
+from typing import List, Set, Dict, Tuple, Any, Optional
 import shutil
 import fastapi
 from urllib.parse import unquote, urlparse
@@ -47,7 +47,7 @@ def get_path(url):
 @app.middleware("http")
 async def logging(request: Request, call_next):
     ip = str(request.client.host)
-    if not ip.startswith('192.168.') and ip not in allowed_ip and 'auth'!=get_path(request.url):
+    if not ip.startswith('192.168.') and ip not in allowed_ip and 'auth' != get_path(request.url):
         return JSONResponse({'failed': f'{ip}는 허용되지 않은 ip 주소입니다. 비밀번호를 입력하여 일시적으로 허용받으세요.'})
     try:
         response = await call_next(request)
@@ -56,15 +56,18 @@ async def logging(request: Request, call_next):
         return fastapi.responses.HTMLResponse(
             content="서버에 에러가 발생했습니다...", status_code=200
         )
-@app.get("/auth",response_class=JSONResponse)
-def auth(password:str,request:Request):
-    ip=str(request.client.host)
-    if password=='0123':
-        allowed_ip.add(ip)
-        return {'success':f'외부 IP {ip}가 등록되었습니다!'}
-    else:
-        return {'failed':'비밀번호가 일치하지 않습니다.'}
 
+
+@app.get("/auth", response_class=JSONResponse)
+def auth(request: Request, password: Optional[str] = ''):
+    ip = str(request.client.host)
+    if ip.startswith('192.168.'):
+        return {'success': ip}
+    elif password == '0123':
+        allowed_ip.add(ip)
+        return {'success': ip}
+    else:
+        return {'failed': '비밀번호가 일치하지 않습니다.'}
 
 
 now_downloading = {}
@@ -376,6 +379,7 @@ def nowdown():
 @repeat_every(seconds=300)
 def schedule_update():
     kbs.update_schedules()
+
 
 @app.on_event("startup")
 @repeat_every(seconds=1)
