@@ -233,9 +233,9 @@ def index():
         <br>
         <div class='row col-12 col-md-11 centering centering_text gx-5'>
         <div class="col-12 col-md-5 col-xl-3 centering" style="margin-bottom:10px"><div class="row">
-    <button class='btn btn-primary'><a href='/music/{file}' download='{file}'>다운로드</a></button></div></div>
+    <button class='btn btn-primary' onclick='download_file("/music/{file}","{file}")'>다운로드</button></div></div>
     {f'''<div class="col-12 col-md-5 col-xl-3 centering" style="margin-bottom:10px"><div class="row">
-    <button class='btn btn-danger'><a style='color:red' onclick='delete_file("{file}")'>삭제</a></button></div></div>''' if file not in now_downloading or now_downloading[file][1] else ""}
+    <button class='btn btn-danger' onclick='delete_file("{file}")'>삭제</button></div></div>''' if file not in now_downloading or now_downloading[file][1] else ""}
         </div>
         <br><audio controls><source src='/music/{file}' type='audio/mp3'></audio><br><br>"""
     if not files:
