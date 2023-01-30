@@ -59,13 +59,12 @@ async def logging(request: Request, call_next):
     #
     # if not ip.startswith('192.168.') and ip not in allowed_ip and '/auth' != str(request.url.path):
     #     return JSONResponse(content={'failed': f'{ip}는 허용되지 않은 ip 주소입니다. 비밀번호를 입력하여 일시적으로 허용받으세요.'})
-    try:
-        response = await call_next(request)
-        return response
-    except Exception as e:
-        return JSONResponse(
-            content={'error':"서버에 에러가 발생했습니다..."}, status_code=500
-        )
+    response = await call_next(request)
+    return response
+    # except Exception as e:
+    #     return JSONResponse(
+    #         content={'error':"서버에 에러가 발생했습니다..."}, status_code=500
+    #     )
 
 
 @app.get("/auth", response_class=JSONResponse)
