@@ -37,12 +37,12 @@ app.add_middleware(
 def get_path(url):
     try:
         return PurePosixPath(
-        unquote(
-            urlparse(
-                url
-            ).path
-        )
-    ).parts[1]
+            unquote(
+                urlparse(
+                    url
+                ).path
+            )
+        ).parts[1]
     except:
         return ''
 
@@ -51,16 +51,13 @@ def get_path(url):
 async def logging(request: Request, call_next):
     print(request.cookies)
     ip = str(request.client.host)
-    print(request.method)
-    print(type(request.method))
-    if request.method:
+    if request.method != 'OPTIONS':
         if 'password' not in request.cookies:
             print('쿠키에 password가 없습니다')
             return JSONResponse(content={'failed': f'Client IP : {ip}, 쿠키에 password가 없습니다.'})
-        if request.cookies['password']!='0123':
+        if request.cookies['password'] != '0123':
             print('password가 틀렸습니다')
             return JSONResponse(content={'failed': f'Client IP : {ip}, password가 틀렸습니다.'})
-
 
     #
     # if not ip.startswith('192.168.') and ip not in allowed_ip and '/auth' != str(request.url.path):
@@ -99,7 +96,7 @@ id_to_ko_name = {
     "wink11": "KBS WORLD Radio CH1",
     "hanminjokradio": "한민족방송",
 }
-record_channel_ids = {"1fm":['세상의 모든 음악']}
+record_channel_ids = {"1fm": ['세상의 모든 음악']}
 now_recording = defaultdict(lambda: False)
 
 
@@ -350,7 +347,7 @@ def index():
     if not files:
         result += "아직 다운로드된 파일이 하나도 없습니다."
     # result += f"""<br>예정된 다운로드 이벤트 : {', '.join([f'{i[0]}에 {tdtoko(i[1])} 동안 {i[2]} 채널' for i in download_events])} 다운로드가 예정되어 있습니다."""
-    return {'content':result}
+    return {'content': result}
 
 
 @app.get("/delete", response_class=JSONResponse)
