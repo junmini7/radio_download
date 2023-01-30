@@ -47,7 +47,7 @@ def get_path(url):
         return ''
 
 
-@app.middleware("http")
+@app.middleware("https")
 async def logging(request: Request, call_next):
     print(request.cookies)
     ip = str(request.client.host)
