@@ -51,13 +51,13 @@ def get_path(url):
 async def logging(request: Request, call_next):
     print(request.cookies)
     ip = str(request.client.host)
-    if request.method != 'OPTIONS':
-        if 'password' not in request.cookies:
-            print('쿠키에 password가 없습니다')
-            return JSONResponse(content={'failed': f'Client IP : {ip}, 쿠키에 password가 없습니다.'})
-        if request.cookies['password'] != '0123':
-            print('password가 틀렸습니다')
-            return JSONResponse(content={'failed': f'Client IP : {ip}, password가 틀렸습니다.'})
+    # if request.method != 'OPTIONS':
+    #     if 'password' not in request.cookies:
+    #         print('쿠키에 password가 없습니다')
+    #         return JSONResponse(content={'failed': f'Client IP : {ip}, 쿠키에 password가 없습니다.'})
+    #     if request.cookies['password'] != '0123':
+    #         print('password가 틀렸습니다')
+    #         return JSONResponse(content={'failed': f'Client IP : {ip}, password가 틀렸습니다.'})
 
     #
     # if not ip.startswith('192.168.') and ip not in allowed_ip and '/auth' != str(request.url.path):
