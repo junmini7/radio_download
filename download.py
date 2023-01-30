@@ -87,7 +87,7 @@ id_to_ko_name = {
     "wink11": "KBS WORLD Radio CH1",
     "hanminjokradio": "한민족방송",
 }
-record_channel_ids = ["1fm"]
+record_channel_ids = {"1fm":['세상의 모든 음악','명연주 명음반']}
 now_recording = defaultdict(lambda: False)
 
 
@@ -385,12 +385,13 @@ def schedule_update():
 
 
 @app.on_event("startup")
-@repeat_every(seconds=1)
+@repeat_every(seconds=0.5)
 def schedule_check() -> None:
     for id in record_channel_ids:
         schedules = kbs.record_schedules[kbs.id_to_code(id)]
         for program_schedule in schedules:
             if (
+                    program_schedule["title"] in record_channel_ids[id] and
                     program_schedule["start"] - td(seconds=10)
                     <= dt.now()
                     < program_schedule["end"]
