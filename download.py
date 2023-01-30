@@ -49,19 +49,22 @@ def get_path(url):
 
 @app.middleware("http")
 async def logging(request: Request, call_next):
-    if 'password' in request.cookies:
-        print(request.cookies['password'])
-    print(request.cookies)
     ip = str(request.client.host)
-    print(request.url.path)
-    if not ip.startswith('192.168.') and ip not in allowed_ip and 'auth' != get_path(str(request.url)):
-        return JSONResponse(content={'failed': f'{ip}는 허용되지 않은 ip 주소입니다. 비밀번호를 입력하여 일시적으로 허용받으세요.'})
+    if 'password' not in request.cookies:
+        return JSONResponse(content={'failed': f'Client IP : {ip}, 쿠키에 password가 없습니다.'})
+    if request.cookies['password']!='0123':
+        return JSONResponse(content={'failed': f'Client IP : {ip}, password가 틀렸습니다.'})
+
+
+    #
+    # if not ip.startswith('192.168.') and ip not in allowed_ip and '/auth' != str(request.url.path):
+    #     return JSONResponse(content={'failed': f'{ip}는 허용되지 않은 ip 주소입니다. 비밀번호를 입력하여 일시적으로 허용받으세요.'})
     try:
         response = await call_next(request)
         return response
     except Exception as e:
-        return fastapi.responses.HTMLResponse(
-            content="서버에 에러가 발생했습니다...", status_code=200
+        return JSONResponse(
+            content={'error':"서버에 에러가 발생했습니다..."}, status_code=500
         )
 
 
@@ -316,7 +319,7 @@ kbs = KBS()
 max_bar = 200
 
 
-@app.get("/", response_class=HTMLResponse)
+@app.get("/", response_class=JSONResponse)
 def index():
     files = os.listdir(music_directory)
     files.sort(reverse=True)
@@ -342,7 +345,7 @@ def index():
     if not files:
         result += "아직 다운로드된 파일이 하나도 없습니다."
     # result += f"""<br>예정된 다운로드 이벤트 : {', '.join([f'{i[0]}에 {tdtoko(i[1])} 동안 {i[2]} 채널' for i in download_events])} 다운로드가 예정되어 있습니다."""
-    return result
+    return {'content':result}
 
 
 @app.get("/delete", response_class=JSONResponse)
