@@ -91,7 +91,7 @@ id_to_ko_name = {
     "wink11": "KBS WORLD Radio CH1",
     "hanminjokradio": "한민족방송",
 }
-record_channel_ids = {"1fm":['세상의 모든 음악','명연주 명음반']}
+record_channel_ids = {"1fm":['세상의 모든 음악']}
 now_recording = defaultdict(lambda: False)
 
 
