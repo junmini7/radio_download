@@ -346,7 +346,7 @@ def index():
 
     if not files:
         result += "아직 다운로드된 파일이 하나도 없습니다."
-    result += f"""<br>{', '.join(f'{k} 채널에서 {", ".join(V)}' for k,v in record_channel_ids.items())} 다운로드가 예정되어 있습니다."""
+    result += f"""<br>{', '.join(f'{k} 채널에서 {", ".join(v)}' for k,v in record_channel_ids.items())} 다운로드가 예정되어 있습니다."""
     return {'content': result}
 
 
