@@ -49,6 +49,7 @@ def get_path(url):
 
 @app.middleware("http")
 async def logging(request: Request, call_next):
+    print(request.cookies)
     ip = str(request.client.host)
     if 'password' not in request.cookies:
         return JSONResponse(content={'failed': f'Client IP : {ip}, 쿠키에 password가 없습니다.'})
