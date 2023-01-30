@@ -49,7 +49,11 @@ def get_path(url):
 
 @app.middleware("http")
 async def logging(request: Request, call_next):
+    if 'password' in request.cookies:
+        print(request.cookies['password'])
+    print(request.cookies)
     ip = str(request.client.host)
+    print(request.url.path)
     if not ip.startswith('192.168.') and ip not in allowed_ip and 'auth' != get_path(str(request.url)):
         return JSONResponse(content={'failed': f'{ip}는 허용되지 않은 ip 주소입니다. 비밀번호를 입력하여 일시적으로 허용받으세요.'})
     try:
