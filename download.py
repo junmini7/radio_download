@@ -22,6 +22,8 @@ import shutil
 import fastapi
 from urllib.parse import unquote, urlparse
 from pathlib import PurePosixPath
+from music_ssh import MusicPlayer
+from youtube import mp3
 
 allowed_ip = set()
 app = FastAPI()
@@ -32,6 +34,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+rpi_music = MusicPlayer()
 
 
 def get_path(url):
@@ -96,7 +99,7 @@ id_to_ko_name = {
     "wink11": "KBS WORLD Radio CH1",
     "hanminjokradio": "한민족방송",
 }
-record_channel_ids = {"1fm": ['세상의 모든 음악']}
+record_channel_ids = {"1fm": ['세상의 모든 음악', '김미숙의 가정음악실']}
 now_recording = defaultdict(lambda: False)
 
 
@@ -152,8 +155,9 @@ def convert_size(size_bytes):
 # 예정
 "https://static.api.kbs.co.kr/mediafactory/v1/schedule/weekly?rtype=json&local_station_code=00&channel_code=24&program_planned_date_from=20230129&program_planned_date_to=20230129"
 
-
 # 모든 채널 리스트
+"https://static.api.kbs.co.kr/mediafactory/v1/schedule/onair_now?rtype=json&local_station_code=00&channel_code=11,12,14,81,N91,N92,N94,N93,N96,23,25,26,wink11,I92,cctv01,51,52,61,21,22,24" \
+"https://cfpwwwapi.kbs.co.kr/api/v2/landing?source=plus&sname=live&page_type=P&stype=sectionmain"
 
 
 class KBS:
@@ -346,7 +350,7 @@ def index():
 
     if not files:
         result += "아직 다운로드된 파일이 하나도 없습니다."
-    result += f"""<br>{', '.join(f'{k} 채널에서 {", ".join(v)}' for k,v in record_channel_ids.items())} 다운로드가 예정되어 있습니다."""
+    result += f"""<br>{', '.join(f'{k} 채널에서 {", ".join(v)}' for k, v in record_channel_ids.items())} 다운로드가 예정되어 있습니다."""
     return {'content': result}
 
 
@@ -372,7 +376,17 @@ def record(record_time: int = 1, channel="1fm"):
     return {"content": f"{channel}채널에서 {record_time}분간 다운로드를 시작했습니다!"}
 
 
-@app.get("/schedules", response_class=JSONResponse)
+@app.get("/play", response_class=JSONResponse)
+def play(request: Request, channel='1fm'):
+    ip = str(request.client.host)
+    rpi_music.play_music(kbs.channel(kbs.id_to_code(channel)))
+    return {'content':'success'}
+
+## if ip.startswit
+
+@ app.get("/schedules", response_class=JSONResponse)
+
+
 def recordschedules():
     return kbs.record_schedules
 
@@ -388,7 +402,7 @@ def nowdown():
 
 
 @app.on_event("startup")
-@repeat_every(seconds=300)
+@repeat_every(seconds=3600)
 def schedule_update():
     kbs.update_schedules()
 
@@ -401,6 +415,7 @@ def schedule_check() -> None:
         for program_schedule in schedules:
             if (
                     program_schedule["title"] in record_channel_ids[id] and
+                    #program_schedule['is_live'] == '본방' and
                     program_schedule["start"] - td(seconds=10)
                     <= dt.now()
                     < program_schedule["end"]

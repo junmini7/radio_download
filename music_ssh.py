@@ -1,0 +1,111 @@
+import paramiko
+import re
+import atexit
+
+
+class MusicPlayer:
+    def __init__(self, host='192.168.123.105', username='pi', password='wnsalsl7!'):
+        self.ssh = paramiko.SSHClient()
+        self.ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        self.ssh.connect(host, username=username, password=password)
+        channel = self.ssh.invoke_shell()
+        self.stdin = channel.makefile('wb')
+        self.stdout = channel.makefile('r')
+        # self.create_screen()
+        self.in_history = []
+        self.out_history = []
+        self.init_vlc()
+        self.print()
+        # atexit.register(self.__del__)
+
+    def __del__(self):
+        self.ssh.close()
+
+    def execute(self, cmd):
+        self.in_history.append(cmd)
+        self.stdin.write(cmd + '\n')
+
+    def print(self, lines=1):
+        for line in self.stdout:
+            lined = line.strip()
+            print(lined)
+            self.out_history.append(lined)
+            if self.in_history[-1] in lined:
+                next_one = self.stdout.__next__().strip()
+                print(next_one)
+                self.out_history.append(next_one)
+                return next_one
+
+    def create_screen(self, name='pi'):
+        self.execute(f'screen -S {name}')
+
+    def delete_screen(self):
+        self.execute('\x04')
+
+    def play_music(self, link='attention.mp3'):
+        self.set_media(link)
+        self.play()
+        # finish = 'end of stdOUT buffer. finished with exit status'
+        # echo_cmd = 'echo {} $?'.format(finish)
+        # self.stdin.write(echo_cmd + '\n')
+        # shin = self.stdin
+        # self.stdin.flush()
+        #
+        # shout = []
+        # sherr = []
+        # exit_status = 0
+        # for line in self.stdout:
+        #     if str(line).startswith(cmd):
+        #         # up for now filled with shell junk from stdin
+        #         shout = []
+        #     else:
+        #         # get rid of 'coloring and formatting' special characters
+        #         shout.append(re.compile(r'(\x9B|\x1B\[)[0-?]*[ -/]*[@-~]').sub('', line).
+        #                      replace('\b', '').replace('\r', ''))
+        #
+        # # first and last lines of shout/sherr contain a prompt
+        # if shout and cmd in shout[0]:
+        #     shout.pop(0)
+        # if sherr and cmd in sherr[0]:
+        #     sherr.pop(0)
+        # return shin, shout, sherr
+
+    def init_vlc(self):
+        for command in ['python', 'import vlc', 'import time', 'media_player = vlc.MediaPlayer()']:
+            self.execute(command)
+
+    # def execute_multiple_commands(self, commands):
+    #     for command in commands:
+    #         self.ssh.exec_command(command)
+    #
+    # def execute(self, command):
+    #     stdin, stdout, stderr = self.ssh.exec_command(command)
+    #     out=[i[:-1] for i in stdout.readlines()]
+    #     print(stderr.read())
+    #     return out
+
+    def set_media(self, media):
+        self.execute(f'media_player.set_mrl("{media}")')
+
+    def play(self):
+        self.execute('media_player.play()')
+
+    def pause(self):
+        self.execute('media_player.pause()')
+
+    def set_volume(self, volume=100):
+        self.execute(f'media_player.audio_set_volume({volume})')
+
+    def get_volume(self):
+        self.execute('media_player.audio_get_volume()')
+        return int(self.print())
+
+        # if stderr.read() == b'':
+        #     for line in stdout.readlines():
+        #         print(line.strip())  # strip the trailing line breaks
+        # else:
+        #     print(stderr.read())
+
+
+if __name__ == '__main__':
+    a = MusicPlayer()
