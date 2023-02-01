@@ -379,14 +379,14 @@ def record(record_time: int = 1, channel="1fm"):
 @app.get("/play", response_class=JSONResponse)
 def play(request: Request, channel='1fm'):
     ip = str(request.client.host)
-    rpi_music.play_music(kbs.channel(kbs.id_to_code(channel)))
-    return {'content':'success'}
+    link = kbs.channel(kbs.id_to_code(channel))['url']
+    rpi_music.play_music(link)
+    return {'content': {'link': link, 'ip': ip}}
+
 
 ## if ip.startswit
 
-@ app.get("/schedules", response_class=JSONResponse)
-
-
+@app.get("/schedules", response_class=JSONResponse)
 def recordschedules():
     return kbs.record_schedules
 
@@ -415,7 +415,7 @@ def schedule_check() -> None:
         for program_schedule in schedules:
             if (
                     program_schedule["title"] in record_channel_ids[id] and
-                    #program_schedule['is_live'] == '본방' and
+                    # program_schedule['is_live'] == '본방' and
                     program_schedule["start"] - td(seconds=10)
                     <= dt.now()
                     < program_schedule["end"]
