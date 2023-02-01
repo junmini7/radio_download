@@ -376,12 +376,41 @@ def record(record_time: int = 1, channel="1fm"):
     return {"content": f"{channel}채널에서 {record_time}분간 다운로드를 시작했습니다!"}
 
 
-@app.get("/play", response_class=JSONResponse)
-def play(request: Request, channel='1fm'):
+@app.get("/play_radio", response_class=JSONResponse)
+def play_radio(request: Request, channel='1fm'):
     ip = str(request.client.host)
     link = kbs.channel(kbs.id_to_code(channel))['url']
     rpi_music.play_music(link)
     return {'content': {'link': link, 'ip': ip}}
+
+
+@app.get('/pause', response_class=JSONResponse)
+def pause(request: Request):
+    ip = str(request.client.host)
+    rpi_music.pause()
+    return {'content': {'ip': ip}}
+
+
+@app.get('/volume', response_class=JSONResponse)
+def volume(request: Request, value=100):
+    ip = str(request.client.host)
+    rpi_music.set_volume(value)
+    return {'content': {'ip': ip}}
+
+
+@app.get('/youtube', response_class=JSONResponse)
+def yt_play(request: Request, v: str):
+    ip = str(request.client.host)
+    link = mp3(v)
+    rpi_music.play_music(link)
+    return {'content': {'ip': ip, 'link': link, 'v': v}}
+
+
+@app.get('/play', response_class=JSONResponse)
+def play(request: Request, link: str):
+    ip = str(request.client.host)
+    rpi_music.play_music(link)
+    return {'content': {'ip': ip, 'link': link}}
 
 
 ## if ip.startswit
