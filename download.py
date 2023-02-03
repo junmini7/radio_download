@@ -440,7 +440,7 @@ def append(request: Request, data: music_info):
         inf = mp3(data.youtube)
         rpi_music.append(
             {'url': inf['mp3'], 'title': inf['title'], 'artist': inf['uploader'], 'thumbnail': inf['thumbnail'],
-             'description': inf['description'], 'real_url': inf['url']})
+             'description': inf['description'], 'real_url': f"https://youtu.be/{inf['id']}"})
     if data.radio:
         code = kbs.id_to_code(id)
         url_information = kbs.channel(code)
