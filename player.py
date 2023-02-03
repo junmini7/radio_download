@@ -19,7 +19,7 @@ def after_print(method):
         result = method(self, *args, **kwargs)
 
         # after the method call
-        print(self)
+        #print(self)
         return result
 
     return decorated
