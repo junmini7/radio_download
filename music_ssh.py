@@ -13,7 +13,7 @@ class MusicPlayer:
         self.stdout = channel.makefile("r")
         self.in_history = []
         self.out_history = []
-        self.create_screen()
+        #self.create_screen()
         self.init()
         self.set_volume(40)
         self.print()
@@ -35,16 +35,21 @@ class MusicPlayer:
         self.in_history.append(cmd)
         self.stdin.write(cmd + "\n")
 
-    def print(self, lines=1):
+    def print(self, keyword=None):
+
         for line in self.stdout:
             lined = line.strip()
             print(lined)
             self.out_history.append(lined)
-            if self.in_history[-1] in lined:
-                next_one = self.stdout.__next__().strip()
-                print(next_one)
-                self.out_history.append(next_one)
-                return next_one
+            if keyword is None:
+                if self.in_history[-1] in lined:
+                    next_one = self.stdout.__next__().strip()
+                    print(next_one)
+                    self.out_history.append(next_one)
+                    return next_one
+            else:
+                if keyword+'=' in lined:
+                    return lined.split('=')[1]
 
     def set_playlist(self, informations):
         self.execute(f'P.set_playlist({str([i["url"] for i in informations])})')
@@ -68,11 +73,11 @@ class MusicPlayer:
 
     def now_index(self):
         self.execute(f'P.now_index()')
-        return int(self.print())
+        return int(self.print('now_index'))
 
     def now_playing(self):
         self.execute('P.now_playing()')
-        return self.print()
+        return self.print('now_playing')
 
     def now_length(self):
         self.execute(f'P.now_length()')
@@ -109,12 +114,12 @@ class MusicPlayer:
 
     def get_volume(self):
         self.execute("P.get_volume()")
-        self.volume = int(self.print())
+        self.volume = int(self.print('volume'))
         return self.volume
 
     def is_playing(self):
         self.execute("P.is_playing()")
-        return "True" == self.print()
+        return "True" == self.print('is_playing')
 
     def create_screen(self, name="pi"):
         self.execute(f"screen -S {name}")

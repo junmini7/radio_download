@@ -89,16 +89,16 @@ class Player(object):
     def now_index(self):
         item = self.now_media()
         if item:
-            return self.playlist.index_of_item(item)
+            print(f"now_index={self.playlist.index_of_item(item)}")
         else:
-            return -1
+            print("now_index=-1")
 
     def now_playing(self):
         now = self.now_media()
         if now:
-            return now.get_mrl()
+            print(f"now_playing={now.get_mrl()}")
         else:
-            return "Not playing"
+            print("now_playing=Not playing")
 
     def now_media(self):
         return self.player.get_media_player().get_media()
@@ -141,18 +141,18 @@ class Player(object):
     def set_volume(self, volume=100):
         self.volume = volume
         self.player.get_media_player().audio_set_volume(volume)
-        return self.volume
+
 
     def get_volume(self):
         self.volume = self.player.get_media_player().audio_get_volume()
-        return self.volume
+        print(f"volume={self.volume}")
 
     def change_volume(self, diff=10):
         self.set_volume(self.volume + diff)
         self.volume+=diff
 
     def is_playing(self):
-        return bool(self.player.is_playing())
+        print(f"is_playing={bool(self.player.is_playing())}")
         #
         # def state(self):
         #     return self.player.get_state()
