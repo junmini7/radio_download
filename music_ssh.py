@@ -13,6 +13,7 @@ class MusicPlayer:
         self.stdout = channel.makefile("r")
         self.in_history = []
         self.out_history = []
+        self.create_screen()
         self.init()
         self.set_volume(40)
         self.print()

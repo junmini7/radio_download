@@ -377,18 +377,17 @@ def record(record_time: int = 1, channel="1fm"):
 @app.get("/home", response_class=JSONResponse)
 def home_status(request: Request):
     ip = str(request.client.host)
-    
+
     now_index = rpi_music.now_index()
     if now_index != -1:
         return {
             "content": {"ip": ip, "volume": rpi_music.volume,
-                        "now_playing": rpi_music.playlist[rpi_music.now_index()],
-                        "now_index": now_index,
-                        'now_length': rpi_music.now_length(), 'playlist': rpi_music.playlist,
+                        "now_playing": rpi_music.playlist[now_index],
+                        "now_index": now_index, 'playlist': rpi_music.playlist,
                         'is_playing': rpi_music.is_playing()}}
     else:
         return {"content": {"ip": ip, "volume": rpi_music.volume, "now_playing": False, "now_index": now_index,
-                            'now_length': rpi_music.now_length(), 'playlist': rpi_music.playlist,
+                            'playlist': rpi_music.playlist,
                             'is_playing': rpi_music.is_playing()}}
 
 
