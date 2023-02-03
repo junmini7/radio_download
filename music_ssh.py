@@ -95,7 +95,7 @@ class MusicPlayer:
     def next(self):
         self.execute("P.next()")
 
-    def next(self):
+    def previous(self):
         self.execute("P.previous()")
 
     def set_volume(self, volume=100):

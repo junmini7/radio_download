@@ -403,7 +403,17 @@ def pause(request: Request):
     rpi_music.pause()
     return {"content": {"ip": ip}}
 
+@app.get("/home/next", response_class=JSONResponse)
+def pause(request: Request):
+    ip = str(request.client.host)
+    rpi_music.next()
+    return {"content": {"ip": ip}}
 
+@app.get("/home/previous", response_class=JSONResponse)
+def pause(request: Request):
+    ip = str(request.client.host)
+    rpi_music.previous()
+    return {"content": {"ip": ip}}
 @app.get("/home/set_volume", response_class=JSONResponse)
 def set_volume(request: Request, value=100):
     ip = str(request.client.host)
