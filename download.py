@@ -385,7 +385,7 @@ def home_status(request: Request):
                         'now_length': rpi_music.now_length(), 'playlist': rpi_music.playlist,
                         'is_playing': rpi_music.is_playing()}}
     else:
-        return {"content": {"ip": ip, "volume": rpi_music.volume, "now_playing": -1, "now_index": now_index,
+        return {"content": {"ip": ip, "volume": rpi_music.volume, "now_playing": False, "now_index": now_index,
                             'now_length': rpi_music.now_length(), 'playlist': rpi_music.playlist,
                             'is_playing': rpi_music.is_playing()}}
 
