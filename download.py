@@ -17,13 +17,14 @@ import os
 from threading import Thread
 from fastapi_utils.tasks import repeat_every
 import math
-from typing import List, Set, Dict, Tuple, Any, Optional
+from typing import List, Set, Dict, Tuple, Any, Optional, Union
 import shutil
 import fastapi
 from urllib.parse import unquote, urlparse
 from pathlib import PurePosixPath
 from music_ssh import MusicPlayer
 from youtube import mp3
+from pydantic import BaseModel
 
 allowed_ip = set()
 app = FastAPI()
@@ -39,15 +40,9 @@ rpi_music = MusicPlayer()
 
 def get_path(url):
     try:
-        return PurePosixPath(
-            unquote(
-                urlparse(
-                    url
-                ).path
-            )
-        ).parts[1]
+        return PurePosixPath(unquote(urlparse(url).path)).parts[1]
     except:
-        return ''
+        return ""
 
 
 @app.middleware("http")
@@ -74,15 +69,15 @@ async def logging(request: Request, call_next):
 
 
 @app.get("/auth", response_class=JSONResponse)
-def auth(request: Request, password: Optional[str] = ''):
+def auth(request: Request, password: Optional[str] = ""):
     ip = str(request.client.host)
-    if ip.startswith('192.168.') or ip in allowed_ip:
-        return {'success': ip}
-    elif password == '0123':
+    if ip.startswith("192.168.") or ip in allowed_ip:
+        return {"success": ip}
+    elif password == "0123":
         allowed_ip.add(ip)
-        return {'success': ip}
+        return {"success": ip}
     else:
-        return {'failed': '비밀번호가 일치하지 않습니다.'}
+        return {"failed": "비밀번호가 일치하지 않습니다."}
 
 
 now_downloading = {}
@@ -99,7 +94,7 @@ id_to_ko_name = {
     "wink11": "KBS WORLD Radio CH1",
     "hanminjokradio": "한민족방송",
 }
-record_channel_ids = {"1fm": ['세상의 모든 음악', '김미숙의 가정음악실']}
+record_channel_ids = {"1fm": ["세상의 모든 음악", "김미숙의 가정음악실"]}
 now_recording = defaultdict(lambda: False)
 
 
@@ -156,8 +151,7 @@ def convert_size(size_bytes):
 "https://static.api.kbs.co.kr/mediafactory/v1/schedule/weekly?rtype=json&local_station_code=00&channel_code=24&program_planned_date_from=20230129&program_planned_date_to=20230129"
 
 # 모든 채널 리스트
-"https://static.api.kbs.co.kr/mediafactory/v1/schedule/onair_now?rtype=json&local_station_code=00&channel_code=11,12,14,81,N91,N92,N94,N93,N96,23,25,26,wink11,I92,cctv01,51,52,61,21,22,24" \
-"https://cfpwwwapi.kbs.co.kr/api/v2/landing?source=plus&sname=live&page_type=P&stype=sectionmain"
+"https://static.api.kbs.co.kr/mediafactory/v1/schedule/onair_now?rtype=json&local_station_code=00&channel_code=11,12,14,81,N91,N92,N94,N93,N96,23,25,26,wink11,I92,cctv01,51,52,61,21,22,24" "https://cfpwwwapi.kbs.co.kr/api/v2/landing?source=plus&sname=live&page_type=P&stype=sectionmain"
 
 
 class KBS:
@@ -168,7 +162,9 @@ class KBS:
         self.update_schedules()
 
     def update_schedules(self):
-        self.record_schedules = self.schedules([self.id_to_code(id) for id in record_channel_ids])
+        self.record_schedules = self.schedules(
+            [self.id_to_code(id) for id in record_channel_ids]
+        )
 
     def channels(self):
         channels_info = requests.get(
@@ -296,7 +292,9 @@ class KBS:
     def record_download(self, id, program_schedule):
         now_recording[id] = True
         self.download(
-            id, int((program_schedule["end"] - dt.now()).total_seconds()), program_schedule
+            id,
+            int((program_schedule["end"] - dt.now()).total_seconds()),
+            program_schedule,
         )
         now_recording[id] = False
 
@@ -351,7 +349,7 @@ def index():
     if not files:
         result += "아직 다운로드된 파일이 하나도 없습니다."
     result += f"""<br>{', '.join(f'{k} 채널에서 {", ".join(v)}' for k, v in record_channel_ids.items())} 다운로드가 예정되어 있습니다."""
-    return {'content': result}
+    return {"content": result}
 
 
 @app.get("/delete", response_class=JSONResponse)
@@ -376,44 +374,80 @@ def record(record_time: int = 1, channel="1fm"):
     return {"content": f"{channel}채널에서 {record_time}분간 다운로드를 시작했습니다!"}
 
 
-@app.get("/play_radio", response_class=JSONResponse)
-def play_radio(request: Request, channel='1fm'):
+@app.get("/home", response_class=JSONResponse)
+def home_status(request: Request):
     ip = str(request.client.host)
-    link = kbs.channel(kbs.id_to_code(channel))['url']
-    rpi_music.play_music(link)
-    return {'content': {'link': link, 'ip': ip}}
+    return {"content": {"ip": ip, "volume": rpi_music.volume, "now_playing": rpi_music.playlist[rpi_music.now_index()],
+                        'now_length': rpi_music.now_length(), 'playlist': rpi_music.playlist,
+                        'is_playing': rpi_music.is_playing()}}
 
 
-@app.get('/pause', response_class=JSONResponse)
+@app.get("/home/play", response_class=JSONResponse)
+def play(request: Request):
+    ip = str(request.client.host)
+    rpi_music.play()
+    return {"content": {"ip": ip}}
+
+
+@app.get("/home/pause", response_class=JSONResponse)
 def pause(request: Request):
     ip = str(request.client.host)
     rpi_music.pause()
-    return {'content': {'ip': ip}}
+    return {"content": {"ip": ip}}
 
 
-@app.get('/volume', response_class=JSONResponse)
-def volume(request: Request, value=100):
+@app.get("/home/set_volume", response_class=JSONResponse)
+def set_volume(request: Request, value=100):
     ip = str(request.client.host)
     rpi_music.set_volume(value)
-    return {'content': {'ip': ip}}
+    return {"content": {"ip": ip, 'volume': value}}
 
 
-@app.get('/youtube', response_class=JSONResponse)
-def yt_play(request: Request, v: str):
+@app.get("/home/get_volume", response_class=JSONResponse)
+def get_volume(request: Request):
     ip = str(request.client.host)
-    link = mp3(v)
-    rpi_music.play_music(link)
-    return {'content': {'ip': ip, 'link': link, 'v': v}}
+    return {"content": {"ip": ip, 'volume': rpi_music.volume}}
 
 
-@app.get('/play', response_class=JSONResponse)
-def play(request: Request, link: str):
+@app.get("/home/change_volume", response_class=JSONResponse)
+def change_volume(request: Request, value=10):
     ip = str(request.client.host)
-    rpi_music.play_music(link)
-    return {'content': {'ip': ip, 'link': link}}
+    rpi_music.change_volume(value)
+    return {"content": {"ip": ip, 'volume': rpi_music.volume}}
+
+
+class music_info(BaseModel):
+    link: Union[str, None] = None
+    youtube: Union[str, None] = None
+    radio: Union[str, None] = None
+    time: int = 10800
+    repeat: bool = True
+    play: bool = True
+
+
+@app.post("/home/append", response_class=JSONResponse)
+def append(request: Request, data: music_info):
+    ip = str(request.client.host)
+    if data.youtube:
+        inf = mp3(data.youtube)
+        rpi_music.append(
+            {'url': inf['mp3'], 'title': inf['title'], 'artist': inf['uploader'], 'thumbnail': inf['thumbnail'],
+             'description': inf['description'], 'real_url': inf['url']})
+    if data.radio:
+        code = kbs.id_to_code(id)
+        url_information = kbs.channel(code)
+        program_information = kbs.on_air([code])[code][0]
+        rpi_music.append(
+            {'url': url_information['url'], 'title': program_information['title'],
+             'artist': f'{program_information["actor"]}({program_information["staff"]})',
+             'thumbnail': program_information['thumbnail'], 'description': program_information['description'],
+             'real_url': program_information['url']}
+        )
+    return {"content": {"ip": ip}}
 
 
 ## if ip.startswit
+
 
 @app.get("/schedules", response_class=JSONResponse)
 def recordschedules():
@@ -443,7 +477,8 @@ def schedule_check() -> None:
         schedules = kbs.record_schedules[kbs.id_to_code(id)]
         for program_schedule in schedules:
             if (
-                    program_schedule["title"] in record_channel_ids[id] and
+                    program_schedule["title"] in record_channel_ids[id]
+                    and
                     # program_schedule['is_live'] == '본방' and
                     program_schedule["start"] - td(seconds=10)
                     <= dt.now()
