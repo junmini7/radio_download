@@ -377,21 +377,19 @@ def record(record_time: int = 1, channel="1fm"):
 @app.get("/home", response_class=JSONResponse)
 def home_status(request: Request):
     ip = str(request.client.host)
-    try:
-        now_index = rpi_music.now_index()
-        if now_index != -1:
-            return {
-                "content": {"ip": ip, "volume": rpi_music.volume,
-                            "now_playing": rpi_music.playlist[rpi_music.now_index()],
-                            "now_index": now_index,
+    
+    now_index = rpi_music.now_index()
+    if now_index != -1:
+        return {
+            "content": {"ip": ip, "volume": rpi_music.volume,
+                        "now_playing": rpi_music.playlist[rpi_music.now_index()],
+                        "now_index": now_index,
+                        'now_length': rpi_music.now_length(), 'playlist': rpi_music.playlist,
+                        'is_playing': rpi_music.is_playing()}}
+    else:
+        return {"content": {"ip": ip, "volume": rpi_music.volume, "now_playing": False, "now_index": now_index,
                             'now_length': rpi_music.now_length(), 'playlist': rpi_music.playlist,
                             'is_playing': rpi_music.is_playing()}}
-        else:
-            return {"content": {"ip": ip, "volume": rpi_music.volume, "now_playing": False, "now_index": now_index,
-                                'now_length': rpi_music.now_length(), 'playlist': rpi_music.playlist,
-                                'is_playing': rpi_music.is_playing()}}
-    except:
-        return {'error': f'에러가 발생했습니다 {ip}'}
 
 
 @app.get("/home/play", response_class=JSONResponse)
@@ -458,7 +456,7 @@ def append(request: Request, data: music_info):
         try:
             inf = mp3(data.youtube)
         except:
-            return {'error':'유튜브 주소가 올바르지 않습니다!'}
+            return {'error': '유튜브 주소가 올바르지 않습니다!'}
         rpi_music.append(
             {'url': inf['mp3'], 'title': inf['title'], 'artist': inf['uploader'], 'thumbnail': inf['thumbnail'],
              'description': inf['description'], 'real_url': f"https://youtu.be/{inf['id']}"})
@@ -472,7 +470,7 @@ def append(request: Request, data: music_info):
              'thumbnail': program_information['thumbnail'], 'description': program_information['description'],
              'real_url': program_information['url']}
         )
-    return {"content": {"ip": ip,'success':f"성공했습니다!"}}
+    return {"content": {"ip": ip, 'success': f"성공했습니다!"}}
 
 
 ## if ip.startswit
