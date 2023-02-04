@@ -384,8 +384,8 @@ def home_status(request: Request):
     # {'url': inf['mp3'], 'title': inf['title'], 'artist': inf['uploader'], 'thumbnail': inf['thumbnail'],
     # 'description': inf['description'], 'real_url': f"https://youtu.be/{inf['id']}"})
     result = {
-        "content": {"ip": ip, "volume": rpi_music.volume, 'playlist': rpi_music.playlist,
-                    'is_playing': rpi_music.is_playing()},
+        "ip": ip, "volume": rpi_music.volume, 'playlist': rpi_music.playlist,
+                    'is_playing': rpi_music.is_playing(),
         'playlist_html': "".join([playlist_template.render(real_url=i['real_url'], thumbnail=i['thumbnail'],
                                                            description=i['description'], artist=i['artist'],
                                                            title=i['title']) for i in rpi_music.playlist])}
@@ -395,7 +395,7 @@ def home_status(request: Request):
         result['now_playing'] = rpi_music.playlist[now_index]
     else:
         result['now_playing'] = False
-    return result
+    return {'content':result}
 
 
 @app.get("/home/play", response_class=JSONResponse)
