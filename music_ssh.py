@@ -18,7 +18,7 @@ class MusicPlayer:
         self.set_volume(40)
         self.print()
         self.playlist = []
-        # atexit.register(self.__del__)
+        # atexit.register(elf.__del__)
 
     def __del__(self):
         self.ssh.close()

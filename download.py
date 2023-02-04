@@ -25,6 +25,10 @@ from pathlib import PurePosixPath
 from music_ssh import MusicPlayer
 from youtube import mp3
 from pydantic import BaseModel
+import jinja2
+
+env = jinja2.Environment(loader=jinja2.FileSystemLoader("."))
+playlist_template = env.get_template("playlist_template.html")
 
 allowed_ip = set()
 app = FastAPI()
@@ -374,21 +378,27 @@ def record(record_time: int = 1, channel="1fm"):
     return {"content": f"{channel}채널에서 {record_time}분간 다운로드를 시작했습니다!"}
 
 
+playlist_template = """"""
+
+
 @app.get("/home", response_class=JSONResponse)
 def home_status(request: Request):
     ip = str(request.client.host)
-
+    # {'url': inf['mp3'], 'title': inf['title'], 'artist': inf['uploader'], 'thumbnail': inf['thumbnail'],
+    # 'description': inf['description'], 'real_url': f"https://youtu.be/{inf['id']}"})
+    result = {
+        "content": {"ip": ip, "volume": rpi_music.volume, 'playlist': rpi_music.playlist,
+                    'is_playing': rpi_music.is_playing()},
+        'playlist_html': "".join([playlist_template.render(real_url=i['real_url'], thumbnail=i['thumbnail'],
+                                                           description=i['description'], artist=i['artist'],
+                                                           title=i['title']) for i in rpi_music.playlist])}
     now_index = rpi_music.now_index()
+    result['now_index'] = now_index
     if now_index != -1:
-        return {
-            "content": {"ip": ip, "volume": rpi_music.volume,
-                        "now_playing": rpi_music.playlist[now_index],
-                        "now_index": now_index, 'playlist': rpi_music.playlist,
-                        'is_playing': rpi_music.is_playing()}}
+        result['now_playing'] = rpi_music.playlist[now_index]
     else:
-        return {"content": {"ip": ip, "volume": rpi_music.volume, "now_playing": False, "now_index": now_index,
-                            'playlist': rpi_music.playlist,
-                            'is_playing': rpi_music.is_playing()}}
+        result['now_playing'] = False
+    return result
 
 
 @app.get("/home/play", response_class=JSONResponse)
@@ -459,16 +469,18 @@ def append(request: Request, data: music_info):
         rpi_music.append(
             {'url': inf['mp3'], 'title': inf['title'], 'artist': inf['uploader'], 'thumbnail': inf['thumbnail'],
              'description': inf['description'], 'real_url': f"https://youtu.be/{inf['id']}"})
+        rpi_music.play()
     if data.radio:
         code = kbs.id_to_code(data.radio)
         url_information = kbs.channel(code)
         program_information = kbs.on_air([code])[code][0]
-        rpi_music.append(
+        rpi_music.set_playlist([
             {'url': url_information['url'], 'title': program_information['title'],
              'artist': f'{program_information["actor"]}({program_information["staff"]})',
              'thumbnail': program_information['thumbnail'], 'description': program_information['description'],
-             'real_url': program_information['url']}
+             'real_url': program_information['url']}]
         )
+        rpi_music.play()
     return {"content": {"ip": ip, 'success': f"성공했습니다!"}}
 
 
