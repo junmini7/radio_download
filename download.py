@@ -378,9 +378,6 @@ def record(record_time: int = 1, channel="1fm"):
     return {"content": f"{channel}채널에서 {record_time}분간 다운로드를 시작했습니다!"}
 
 
-playlist_template = """"""
-
-
 @app.get("/home", response_class=JSONResponse)
 def home_status(request: Request):
     ip = str(request.client.host)
