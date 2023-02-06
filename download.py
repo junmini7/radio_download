@@ -39,7 +39,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-rpi_music = MusicPlayer()
+# rpi_music = MusicPlayer()
 
 
 def get_path(url):
