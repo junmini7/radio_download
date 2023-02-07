@@ -98,7 +98,7 @@ id_to_ko_name = {
     "wink11": "KBS WORLD Radio CH1",
     "hanminjokradio": "한민족방송",
 }
-record_channel_ids = {"1fm": ["세상의 모든 음악", "김미숙의 가정음악실"]}
+record_channel_ids = {"1fm": ["세상의 모든 음악", "김미숙의 가정음악"]}
 now_recording = defaultdict(lambda: False)
 
 
@@ -346,8 +346,8 @@ def index():
         if file not in now_downloading or now_downloading[file][1]:
             result += f"""<div class='row col-12 col-md-11 centering centering_text gx-5'>
         <div class="col-12 col-md-5 col-xl-3 centering" style="margin-bottom:10px"><div class="row">
-    <button class='btn btn-primary' onclick='download_file("/music/{file}","{file}")'>다운로드</button></div></div><div class="col-12 col-md-5 col-xl-3 centering" style="margin-bottom:10px"><div class="row">
-    <button class='btn btn-danger' onclick='delete_file("{file}")'>삭제</button></div></div></div><br><audio controls><source src='/music/{file}' type='audio/mp3'></audio><br>"""
+    <button class='btn btn-danger' onclick='download_file("/music/{file}","{file}");delete_file("{file}");'>다운로드 및 삭제</button></div></div><div class="col-12 col-md-5 col-xl-3 centering" style="margin-bottom:10px"><div class="row">
+    <button class='btn btn-primary' onclick='download_file("/music/{file}","{file}")'>다운로드</button></div></div></div><br><audio controls><source src='/music/{file}' type='audio/mp3'></audio><br>"""
         result += "<br>"
 
     if not files:
