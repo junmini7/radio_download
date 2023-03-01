@@ -385,6 +385,7 @@ def record(record_time: int = 1, channel="1fm"):
 
 @app.get("/schedules", response_class=JSONResponse)
 def recordschedules():
+    kbs.update_schedules()
     return kbs.record_schedules
 
 
