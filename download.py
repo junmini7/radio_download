@@ -166,6 +166,7 @@ class KBS:
         self.update_schedules()
 
     def update_schedules(self):
+        update_history.append(dt.now())
         self.record_schedules = self.schedules(
             [self.id_to_code(id) for id in record_channel_ids]
         )
@@ -386,7 +387,7 @@ def record(record_time: int = 1, channel="1fm"):
 @app.get("/schedules", response_class=JSONResponse)
 def recordschedules():
     kbs.update_schedules()
-    return kbs.record_schedules
+    return {'updated': update_history,'data':kbs.record_schedules}
 
 
 @app.get("/now_recording", response_class=JSONResponse)
@@ -399,7 +400,7 @@ def nowdown():
     return now_downloading
 
 
-
+update_history=[]
 @app.on_event("startup")
 @repeat_every(seconds=3600)
 def schedule_update():
