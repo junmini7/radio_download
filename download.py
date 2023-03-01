@@ -83,7 +83,7 @@ def auth(request: Request, password: Optional[str] = ""):
     else:
         return {"failed": "비밀번호가 일치하지 않습니다."}
 
-
+update_history=[]
 now_downloading = {}
 size_name = ("B", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB")
 music_directory = "/web/music/"
@@ -400,7 +400,7 @@ def nowdown():
     return now_downloading
 
 
-update_history=[]
+
 @app.on_event("startup")
 @repeat_every(seconds=3600)
 def schedule_update():
