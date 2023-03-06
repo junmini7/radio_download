@@ -387,7 +387,9 @@ def record(record_time: int = 1, channel="1fm"):
 @app.get("/schedules", response_class=JSONResponse)
 def recordschedules():
     kbs.update_schedules()
-    return {'updated': update_history,'data':kbs.record_schedules}
+    return {'updated': update_history,'data':kbs.record_schedules,'new':kbs.schedules(
+            [kbs.id_to_code(id) for id in record_channel_ids]
+        )}
 
 
 @app.get("/now_recording", response_class=JSONResponse)
