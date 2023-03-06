@@ -41,7 +41,6 @@ app.add_middleware(
 )
 
 
-
 def get_path(url):
     try:
         return PurePosixPath(unquote(urlparse(url).path)).parts[1]
@@ -83,7 +82,8 @@ def auth(request: Request, password: Optional[str] = ""):
     else:
         return {"failed": "비밀번호가 일치하지 않습니다."}
 
-update_history=[]
+
+update_history = []
 now_downloading = {}
 size_name = ("B", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB")
 music_directory = "/web/music/"
@@ -220,9 +220,13 @@ class KBS:
     def schedules(
             self,
             channel_codes=None,
-            start=date.today() - td(days=1),
-            end=date.today() + td(days=1),
+            start=None,
+            end=None,
     ):
+        if start is None:
+            start = date.today() - td(days=1)
+        if end is None:
+            end = date.today() + td(days=1)
         if channel_codes is None:
             channel_codes = ["24"]
         else:
@@ -298,7 +302,7 @@ class KBS:
         now_recording[id] = True
         self.download(
             id,
-            int((program_schedule["end"] - dt.now()).total_seconds())+3,
+            int((program_schedule["end"] - dt.now()).total_seconds()) + 3,
             program_schedule,
         )
         now_recording[id] = False
@@ -379,17 +383,13 @@ def record(record_time: int = 1, channel="1fm"):
     return {"content": f"{channel}채널에서 {record_time}분간 다운로드를 시작했습니다!"}
 
 
-
-
 ## if ip.startswit
 
 
 @app.get("/schedules", response_class=JSONResponse)
 def recordschedules():
     kbs.update_schedules()
-    return {'updated': update_history,'data':kbs.record_schedules,'new':kbs.schedules(
-            [kbs.id_to_code(id) for id in record_channel_ids]
-        )}
+    return {'updated': update_history, 'data': kbs.record_schedules}
 
 
 @app.get("/now_recording", response_class=JSONResponse)
@@ -402,14 +402,14 @@ def nowdown():
     return now_downloading
 
 
-
 @app.on_event("startup")
 @repeat_every(seconds=3600)
 def schedule_update():
     kbs.update_schedules()
 
-#mongodb 다운 여부 다운하면 ip 저장
-#다운 누르면 그때 주소 주기
+
+# mongodb 다운 여부 다운하면 ip 저장
+# 다운 누르면 그때 주소 주기
 
 @app.on_event("startup")
 @repeat_every(seconds=0.5)
